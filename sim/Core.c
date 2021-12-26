@@ -1,0 +1,128 @@
+#include "Core.h"
+
+
+
+
+void Core_Init(S_Core* Core , int Core_Index)
+{
+	int ii;
+
+	Core->Core_PC = 0;
+	Core->Core_PC_Q = 0;
+	Core->imem_Index = 0;
+	Core->Core_Stage_Flag = CORE_STAGE_FLAG_FETCH_OFFSET;
+	Core->Core_Stage_Flag_Q = CORE_STAGE_FLAG_FETCH_OFFSET;
+	Core->Hazard_Stall = false;
+
+	for (ii = 0; ii < 16; ii++)
+	{
+		Core->Hazard_Flag[ii] = false; // initial the Hazard Falg to zero
+	}
+
+
+
+}
+
+void Next_Cycle_Data(S_Core* p_Core)
+{
+
+	for (int ii = 0; ii < 16; ii++)
+	{
+		p_Core->Reg_Array[ii] = p_Core->Reg_Array_Q[ii];
+	}
+
+	if ((p_Core->Core_Stage_Flag & 0x08) == CORE_STAGE_FLAG_MEM_OFFSET)
+		get_WB_Data(p_Core);
+
+	if ((p_Core->Core_Stage_Flag & 0x04) == CORE_STAGE_FLAG_EXECUTE_OFFSET)
+		Get_MEM_Data(p_Core);
+
+	if ((p_Core->Core_Stage_Flag & 0x02) == CORE_STAGE_FLAG_DECODE_OFFSET)
+		Get_Execute_Data(p_Core);
+
+	if ((p_Core->Core_Stage_Flag & 0x01) == CORE_STAGE_FLAG_FETCH_OFFSET)
+		Get_Decode_Data(p_Core);
+
+	p_Core->Core_Stage_Flag = p_Core->Core_Stage_Flag_Q;
+	p_Core->Core_PC = p_Core->Core_PC_Q;
+
+}
+
+OS_Error Cores_ex(S_Multi_Core_Env* Cores_env)
+{
+
+	int Core_Index;
+	OS_Error Error_Status = E_NO_ERROR;
+	while (1)
+	{
+		for (Core_Index = 0; Core_Index < 1; Core_Index++) // need to change for 4 cores for now it is only for core 0
+		{
+			if (Cores_env->p_s_core[Core_Index].Hazard_Stall == false)
+				Cores_env->p_s_core[Core_Index].Core_PC_Q++; // Adding Core Q PC by 1
+
+			if (Cores_env->p_s_core[Core_Index].Hazard_Stall == false)
+			{
+				if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x01) == CORE_STAGE_FLAG_FETCH_OFFSET)
+				{
+					Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], E_FETCH);
+
+				}
+			}
+
+			if (Cores_env->p_s_core[Core_Index].Hazard_Stall == false)
+			{
+				if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x02) == CORE_STAGE_FLAG_DECODE_OFFSET)
+				{
+					Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], E_DECODE);
+				}
+			}
+
+
+			if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x04) == CORE_STAGE_FLAG_EXECUTE_OFFSET)
+			{
+				Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], E_EXECUTE);
+			}
+
+			if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x08) == CORE_STAGE_FLAG_MEM_OFFSET)
+			{
+				Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], E_MEM);
+			}
+
+			if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x10) == CORE_STAGE_FLAG_WB_OFFSET)
+				Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], E_WRITE_BACK);
+
+
+
+
+			Outout_Fill_Trace(&Cores_env->p_s_core[Core_Index], Cores_env->Clock);
+
+			Next_Cycle_Data(&Cores_env->p_s_core[Core_Index]);
+
+			if (Cores_env->p_s_core[Core_Index].Core_Stage_Flag == 0)
+			{
+				fclose(Cores_env->p_s_core[Core_Index].p_CoreTrace_File);
+				OutPut_Fill_Reg_File(&Cores_env->p_s_core[Core_Index]);
+				exit(1);
+			}
+
+			printf("\n Clock =%d\n", Cores_env->Clock);
+
+			for (int jj = 2; jj < 16; jj++)
+			{
+				printf("\n R%d = %d", jj, Cores_env->p_s_core[Core_Index].Reg_Array[jj]);
+			}
+
+			printf("\n Hazard Array\n");
+			for (int ii = 0; ii < 16; ii++)
+			{
+				printf("R%d = %d\n", ii, Cores_env->p_s_core[Core_Index].Hazard_Flag[ii]);
+			}
+
+		}
+
+		Cores_env->Clock++;
+
+	}
+
+
+}
