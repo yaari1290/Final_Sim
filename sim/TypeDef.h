@@ -206,6 +206,8 @@ typedef enum OS_Error {
 #define DEBUG_EXECUTE_PRINT		1
 #define DEBUG_MEM_PRINT			1
 #define DEBUG_WRITEBACK_PRINT	1
+#define DEBUG_REGESTERS_PRINT	0
+#define DEBUG_HAZARD_PRINT		1
 
 
 

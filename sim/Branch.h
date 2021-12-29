@@ -10,6 +10,7 @@ void Blt_Execute(S_Core* p_Core);
 void Bgt_Execute(S_Core* p_Core);
 void Ble_Execute(S_Core* p_Core);
 void Bge_Execute(S_Core* p_Core);
+void Execute_JAL_Op(S_Core* p_Core);
 
 
 #endif

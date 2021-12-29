@@ -38,13 +38,17 @@ void Next_Cycle_Data(S_Core* p_Core)
 		Get_MEM_Data(p_Core);
 
 	if ((p_Core->Core_Stage_Flag & 0x02) == CORE_STAGE_FLAG_DECODE_OFFSET)
-		Get_Execute_Data(p_Core);
+		if (p_Core->Hazard_Stall == false)
+			Get_Execute_Data(p_Core);
 
 	if ((p_Core->Core_Stage_Flag & 0x01) == CORE_STAGE_FLAG_FETCH_OFFSET)
-		Get_Decode_Data(p_Core);
+		if (p_Core->Hazard_Stall == false)
+			Get_Decode_Data(p_Core);
+
 
 	p_Core->Core_Stage_Flag = p_Core->Core_Stage_Flag_Q;
-	p_Core->Core_PC = p_Core->Core_PC_Q;
+	if (p_Core->Hazard_Stall == false)
+		p_Core->Core_PC = p_Core->Core_PC_Q;
 
 }
 
@@ -60,28 +64,24 @@ OS_Error Cores_ex(S_Multi_Core_Env* Cores_env)
 			if (Cores_env->p_s_core[Core_Index].Hazard_Stall == false)
 				Cores_env->p_s_core[Core_Index].Core_PC_Q++; // Adding Core Q PC by 1
 
-			if (Cores_env->p_s_core[Core_Index].Hazard_Stall == false)
+
+			if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x01) == CORE_STAGE_FLAG_FETCH_OFFSET)
 			{
-				if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x01) == CORE_STAGE_FLAG_FETCH_OFFSET)
-				{
-					Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], E_FETCH);
+				Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], E_FETCH);
 
-				}
 			}
-
-			if (Cores_env->p_s_core[Core_Index].Hazard_Stall == false)
+			
+			if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x02) == CORE_STAGE_FLAG_DECODE_OFFSET)
 			{
-				if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x02) == CORE_STAGE_FLAG_DECODE_OFFSET)
-				{
-					Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], E_DECODE);
-				}
+				Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], E_DECODE);
 			}
-
+			
 
 			if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x04) == CORE_STAGE_FLAG_EXECUTE_OFFSET)
 			{
 				Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], E_EXECUTE);
 			}
+			
 
 			if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x08) == CORE_STAGE_FLAG_MEM_OFFSET)
 			{
@@ -97,6 +97,8 @@ OS_Error Cores_ex(S_Multi_Core_Env* Cores_env)
 			Outout_Fill_Trace(&Cores_env->p_s_core[Core_Index], Cores_env->Clock);
 
 			Next_Cycle_Data(&Cores_env->p_s_core[Core_Index]);
+			
+
 
 			if (Cores_env->p_s_core[Core_Index].Core_Stage_Flag == 0)
 			{
@@ -107,18 +109,27 @@ OS_Error Cores_ex(S_Multi_Core_Env* Cores_env)
 
 			printf("\n Clock =%d\n", Cores_env->Clock);
 
+#if DEBUG_REGESTERS_PRINT	
 			for (int jj = 2; jj < 16; jj++)
 			{
 				printf("\n R%d = %d", jj, Cores_env->p_s_core[Core_Index].Reg_Array[jj]);
 			}
-
+#endif
+#if DEBUG_HAZARD_PRINT
 			printf("\n Hazard Array\n");
 			for (int ii = 0; ii < 16; ii++)
 			{
 				printf("R%d = %d\n", ii, Cores_env->p_s_core[Core_Index].Hazard_Flag[ii]);
 			}
+#endif
 
 		}
+
+		if (Cores_env->Clock == 1029)
+		{
+			printf("hello world\n");
+		}
+
 
 		Cores_env->Clock++;
 

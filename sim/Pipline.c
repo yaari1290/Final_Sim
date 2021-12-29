@@ -1,22 +1,24 @@
 #include "Pipline.h"
 
 
-
+#define BIT(x)	(1U << (x))
+#define IS_NEGATIVE(num2c) ((num2c) & BIT(31))
+#define SAME_SIGN(a, b)	!(((a) ^ (b)) & BIT(31))
 
 bool Check_Hazard(S_Core* p_Core , uint32_t Add_Rtv, uint32_t Add_Rsv )
 {
 	uint16_t Hazard_Reg_Rtv = 0;
 	uint16_t Hazard_Reg_Rsv = 0;
 
-	if (Add_Rtv != 0)
+	if ((Add_Rtv != 0) && (Add_Rtv != 1))
 	{
-		if (p_Core->Hazard_Flag[Add_Rsv] == true)
+		if (p_Core->Hazard_Flag[Add_Rtv] == true)
 			return true;
 	}
 
-	if (Add_Rsv != 0)
+	if ((Add_Rsv != 0) && (Add_Rsv != 1))
 	{
-		if (p_Core->Hazard_Flag[Add_Rtv] == true)
+		if (p_Core->Hazard_Flag[Add_Rsv] == true)
 			return true;
 	}
 
@@ -58,15 +60,16 @@ OS_Error Core_Fetch_Stage(S_Core* p_Core)
 }
 
 
-void Get_Decode_Data(S_Core *p_Core)
+void Get_Decode_Data(S_Core* p_Core)
 {
 	//p_Core->S_Pipline_Core_ID.Decode_Valid_Reg = p_Core->S_Pipline_Core_ID.Decode_Next_Reg;
+
+
 	p_Core->S_Pipline_Core_Decode_Valid.Decode_IR = p_Core->S_Pipline_Core_Fetch_Next.Fetch_IR;
 	p_Core->S_Pipline_Core_Decode_Valid.NPC = p_Core->S_Pipline_Core_Fetch_Next.NPC;
-
 	p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q + CORE_STAGE_FLAG_DECODE_OFFSET;
+	
 }
-
 
 OS_Error Core_Decode_Stage(S_Core* p_Core)
 {
@@ -77,66 +80,96 @@ OS_Error Core_Decode_Stage(S_Core* p_Core)
 	uint32_t Rs_Mask			= 0x000F0000;
 	uint32_t Rd_Mask			= 0x00F00000;
 	uint32_t Opcode_Mask		= 0xFF000000;
+	uint32_t sign_extention_mask = 0;
+
 
 	p_Core->S_Pipline_Core_Decode_Next.IMM = p_Core->S_Pipline_Core_Decode_Valid.Decode_IR & Immediate_Mask;
-	p_Core->Reg_Array_Q[1] = p_Core->S_Pipline_Core_Decode_Next.IMM;
 	p_Core->S_Pipline_Core_Decode_Next.Rtv = (p_Core->S_Pipline_Core_Decode_Valid.Decode_IR & Rt_Mask) >> 12;
 	p_Core->S_Pipline_Core_Decode_Next.Rsv = (p_Core->S_Pipline_Core_Decode_Valid.Decode_IR & Rs_Mask) >> 16;
 	p_Core->S_Pipline_Core_Decode_Next.Rd = (p_Core->S_Pipline_Core_Decode_Valid.Decode_IR & Rd_Mask) >> 20;
 	p_Core->S_Pipline_Core_Decode_Next.Opcode = (p_Core->S_Pipline_Core_Decode_Valid.Decode_IR & Opcode_Mask) >> 24;
-	p_Core->S_Pipline_Core_Decode_Next.NPC = p_Core->S_Pipline_Core_Decode_Valid.NPC;
-	p_Core->S_Pipline_Core_Decode_Next.Decode_IR = p_Core->S_Pipline_Core_Decode_Valid.Decode_IR;
 
-	p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q & ~CORE_STAGE_FLAG_DECODE_OFFSET;
 
-	Operation OperationStage = (Operation)p_Core->S_Pipline_Core_Decode_Next.Opcode;
-			if (OperationStage == E_BEQ)
+	if (p_Core->S_Pipline_Core_Decode_Next.IMM & BIT(11))
+	{
+		sign_extention_mask = ~(BIT(12) - 1);
+	}
+			
+	p_Core->Reg_Array_Q[1] = p_Core->S_Pipline_Core_Decode_Next.IMM | sign_extention_mask;
+
+	// need to add her hazard opperation//
+	if (Check_Hazard(p_Core, p_Core->S_Pipline_Core_Decode_Next.Rtv, p_Core->S_Pipline_Core_Decode_Next.Rsv))
+	{
+		// hazard check for Rsv Rtv and stay in loop until is free
+		p_Core->Hazard_Stall = true;
+	}
+	else
+		p_Core->Hazard_Stall = false;
+
+
+	if (p_Core->Hazard_Stall == false)
+	{
+		p_Core->S_Pipline_Core_Decode_Next.NPC = p_Core->S_Pipline_Core_Decode_Valid.NPC;
+		p_Core->S_Pipline_Core_Decode_Next.Decode_IR = p_Core->S_Pipline_Core_Decode_Valid.Decode_IR;
+		p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q & ~CORE_STAGE_FLAG_DECODE_OFFSET;
+
+		Operation OperationStage = (Operation)p_Core->S_Pipline_Core_Decode_Next.Opcode;
+		if (OperationStage == E_BEQ)
 		{
 #if DEBUG_EXECUTE_PRINT
-		printf("BEQ Operation\n");
+			printf("BEQ Operation\n");
 #endif
-		Beq_Execute(p_Core);
+			Beq_Execute(p_Core);
 		}
 
-			else if (OperationStage == E_BNE)
+		else if (OperationStage == E_BNE)
 		{
 #if DEBUG_EXECUTE_PRINT
-		printf("BNE Operation\n");
+			printf("BNE Operation\n");
 #endif
-		Bne_Execute(p_Core);
+			Bne_Execute(p_Core);
 		}
 
-			else if (OperationStage == E_BLT)
+		else if (OperationStage == E_BLT)
 		{
 #if DEBUG_EXECUTE_PRINT
-		printf("BLT Operation\n");
+			printf("BLT Operation\n");
 #endif
-		Blt_Execute(p_Core);
+			Blt_Execute(p_Core);
 		}
 
-			else if (OperationStage == E_BGT)
+		else if (OperationStage == E_BGT)
 		{
 #if DEBUG_EXECUTE_PRINT
-		printf("BGT Operation\n");
+			printf("BGT Operation\n");
 #endif
-		Bgt_Execute(p_Core);
+			Bgt_Execute(p_Core);
 		}
 
-			else if (OperationStage == E_BLE)
+		else if (OperationStage == E_BLE)
 		{
 #if DEBUG_EXECUTE_PRINT
-		printf("BLE Operation\n");
+			printf("BLE Operation\n");
 #endif
-		Ble_Execute(p_Core);
+			Ble_Execute(p_Core);
 		}
 
-			else if (OperationStage == E_BGE)
+		else if (OperationStage == E_BGE)
 		{
 #if DEBUG_EXECUTE_PRINT
-		printf("BGE Operation\n");
+			printf("BGE Operation\n");
 #endif
-		Bge_Execute(p_Core);
+			Bge_Execute(p_Core);
 		}
+
+		else if (OperationStage == E_JAL)
+		{
+#if DEBUG_EXECUTE_PRINT
+			printf("JAL Operation\n");
+#endif
+			Execute_JAL_Op(p_Core);
+		}
+	}
 
 
 #if DEBUG_DECODE_PRINT
@@ -159,28 +192,19 @@ OS_Error Core_Decode_Stage(S_Core* p_Core)
 void Get_Execute_Data(S_Core* p_Core)
 {
 
+	p_Core->S_Pipline_Core_Execute_Valid.IMM = p_Core->S_Pipline_Core_Decode_Next.IMM;
+	p_Core->S_Pipline_Core_Execute_Valid.Dest_Reg = p_Core->S_Pipline_Core_Decode_Next.Rd;
+	p_Core->S_Pipline_Core_Execute_Valid.Opcode = p_Core->S_Pipline_Core_Decode_Next.Opcode;
+	p_Core->S_Pipline_Core_Execute_Valid.Execute_IR = p_Core->S_Pipline_Core_Decode_Next.Decode_IR;
+	p_Core->S_Pipline_Core_Execute_Valid.NPC = p_Core->S_Pipline_Core_Decode_Next.NPC;
 
-	// need to add her hazard opperation//
-	if (Check_Hazard(p_Core, p_Core->S_Pipline_Core_Decode_Next.Rtv, p_Core->S_Pipline_Core_Decode_Next.Rsv))
-	{
-		// hazard check for Rsv Rtv and stay in loop until is free
-		p_Core->Hazard_Stall = true;
-	}
-	else
-	{
-		p_Core->S_Pipline_Core_Execute_Valid.IMM = p_Core->S_Pipline_Core_Decode_Next.IMM;
-		p_Core->S_Pipline_Core_Execute_Valid.Dest_Reg = p_Core->S_Pipline_Core_Decode_Next.Rd;
-		p_Core->S_Pipline_Core_Execute_Valid.Opcode = p_Core->S_Pipline_Core_Decode_Next.Opcode;
-		p_Core->S_Pipline_Core_Execute_Valid.Execute_IR = p_Core->S_Pipline_Core_Decode_Next.Decode_IR;
-		p_Core->S_Pipline_Core_Execute_Valid.NPC = p_Core->S_Pipline_Core_Decode_Next.NPC;
-
-		p_Core->S_Pipline_Core_Execute_Valid.Rtv = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rtv];
-		p_Core->S_Pipline_Core_Execute_Valid.Rsv = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rsv];
-
+	p_Core->S_Pipline_Core_Execute_Valid.Rtv = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rtv];
+	p_Core->S_Pipline_Core_Execute_Valid.Rsv = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rsv];
+		
+	if((p_Core->S_Pipline_Core_Execute_Valid.Dest_Reg != 0) && (p_Core->S_Pipline_Core_Execute_Valid.Dest_Reg != 1))
 		Signal_Hazard(p_Core, p_Core->S_Pipline_Core_Execute_Valid.Dest_Reg); // signal hazard for the Dest Add Reg
 
-		p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q + CORE_STAGE_FLAG_EXECUTE_OFFSET;
-	}
+	p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q + CORE_STAGE_FLAG_EXECUTE_OFFSET;
 
 
 }
@@ -228,8 +252,11 @@ void Execute_SLL_Op(S_Core* p_Core)
 
 void Execute_SRA_Op(S_Core* p_Core)
 {
-
-	p_Core->S_Pipline_Core_Execute_Valid.ALU = p_Core->S_Pipline_Core_Execute_Valid.Rsv >> p_Core->S_Pipline_Core_Execute_Valid.Rtv;
+	uint32_t sign_extention_mask = 0;
+	if (IS_NEGATIVE(p_Core->S_Pipline_Core_Execute_Valid.Rsv)) {
+		sign_extention_mask = ~(BIT(31 - p_Core->S_Pipline_Core_Execute_Valid.Rtv) - 1);
+	}
+	p_Core->S_Pipline_Core_Execute_Valid.ALU = (p_Core->S_Pipline_Core_Execute_Valid.Rsv >> p_Core->S_Pipline_Core_Execute_Valid.Rtv)| sign_extention_mask;
 }
 
 void Execute_SRL_Op(S_Core* p_Core)
@@ -238,11 +265,6 @@ void Execute_SRL_Op(S_Core* p_Core)
 	p_Core->S_Pipline_Core_Execute_Valid.ALU = p_Core->S_Pipline_Core_Execute_Valid.Rsv >> p_Core->S_Pipline_Core_Execute_Valid.Rtv;
 }
 
-
-void Execute_JAL_Op(S_Core* p_Core)
-{
-	//need to under stand what to do
-}
 
 
 void Execute_LW_Op(S_Core* p_Core)
@@ -303,7 +325,7 @@ OS_Error Core_Execute_Stage(S_Core* p_Core)
 #if DEBUG_EXECUTE_PRINT
 			printf("AND Operation\n");
 #endif
-			return Error_Status;
+			Execute_AND_Op(p_Core);
 		}
 
 		else if(OperationStage == E_OR)
@@ -311,6 +333,8 @@ OS_Error Core_Execute_Stage(S_Core* p_Core)
 #if DEBUG_EXECUTE_PRINT
 			printf("OR Operation\n");
 #endif
+
+			Execute_OR_Op(p_Core);
 		}
 
 		else if(OperationStage == E_XOR)
@@ -318,6 +342,7 @@ OS_Error Core_Execute_Stage(S_Core* p_Core)
 #if DEBUG_EXECUTE_PRINT
 			printf("XOR Operation\n");
 #endif
+			Execute_XOR_Op(p_Core);
 		}
 
 		else if(OperationStage == E_MUL)
@@ -325,6 +350,7 @@ OS_Error Core_Execute_Stage(S_Core* p_Core)
 #if DEBUG_EXECUTE_PRINT
 			printf("MUL Operation\n");
 #endif
+			Execute_MUL_Op(p_Core);
 		}
 
 		else if(OperationStage == E_SLL)
@@ -332,6 +358,7 @@ OS_Error Core_Execute_Stage(S_Core* p_Core)
 #if DEBUG_EXECUTE_PRINT
 			printf("SLL Operation\n");
 #endif
+			Execute_SLL_Op(p_Core);
 		}
 
 		else if(OperationStage == E_SRA)
@@ -339,6 +366,7 @@ OS_Error Core_Execute_Stage(S_Core* p_Core)
 #if DEBUG_EXECUTE_PRINT
 			printf("SRA Operation\n");
 #endif
+			Execute_SRA_Op(p_Core);
 		}
 
 		else if(OperationStage == E_SRL)
@@ -346,14 +374,9 @@ OS_Error Core_Execute_Stage(S_Core* p_Core)
 #if DEBUG_EXECUTE_PRINT
 			printf("SRL Operation\n");
 #endif
+			Execute_SRL_Op(p_Core);
 		}
 
-		else if(OperationStage == E_JAL)
-		{
-#if DEBUG_EXECUTE_PRINT
-			printf("JAL Operation\n");
-#endif
-		}
 
 		else if(OperationStage == E_LW)
 		{
@@ -471,8 +494,8 @@ OS_Error Core_WB_Stage(S_Core* p_Core)
 		p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_WB_Valid.Dest] = p_Core->S_Pipline_Core_WB_Valid.ALU; // Writing the final value to reg
 		Clear_Hazard(p_Core, p_Core->S_Pipline_Core_WB_Valid.Dest);
 
-		printf("ALU = %d\n", p_Core->S_Pipline_Core_WB_Valid.ALU);
-		printf("Dest Reg = %d\n", p_Core->S_Pipline_Core_WB_Valid.Dest);
+		printf("ALU = %08x\n", p_Core->S_Pipline_Core_WB_Valid.ALU);
+		printf("Dest Reg = %x\n", p_Core->S_Pipline_Core_WB_Valid.Dest);
 
 	}
 
@@ -525,7 +548,7 @@ OS_Error Core_Stage_ex(S_Core *p_Core , E_Core_Stage Stage)
 			printf("\nCore Reg Array!\n");
 			for (int ii = 0; ii < 16; ii++)
 			{
-				printf("R%d = %d\n", ii, p_Core->Reg_Array[ii]);
+				printf("R%d = %x\n", ii, p_Core->Reg_Array[ii]);
 			}
 			return Error_Status;
 
