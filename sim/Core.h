@@ -7,6 +7,7 @@
 #include "Branch.h"
 #include "mem.h"
 #include "output.h"
+#include "Bus.h"
 
 
 void Core_Init(S_Core* Core, int Core_Index);

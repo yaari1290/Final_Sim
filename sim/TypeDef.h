@@ -48,6 +48,7 @@ typedef enum E_Owner {
 	E_CORE2			= 2,
 	E_CORE3			= 3,
 	E_MAIN_MEM		= 4,
+	E_NO_CORE		= -1,
 	E_MAX_VAL		= 0xF
 
 }E_Owner;
@@ -58,6 +59,13 @@ typedef enum E_Memory_Command {
 	E_BUS_RDX		=2,
 	E_FLUSH			=3
 }E_Memory_Command;
+
+typedef enum Current_MSI_STATE {
+	INVALID = 0,
+	SHARED = 1,
+	EXCLUSIVE = 2,
+	MODIFIED = 3
+}Current_MSI_STATE;
 
 #define NUM_OF_COMMAND_LINES 27
 #define MAX_NUM_OF_CORES 4
@@ -104,6 +112,7 @@ typedef struct S_Pipline_Mem {
 	uint32_t ALU;
 	uint32_t Dest_Reg;
 	uint32_t Rtv;
+	uint32_t Rsv;
 	uint32_t Mem_IR;
 	uint32_t NPC;
 	uint32_t Execute_Opcode : 8;
@@ -121,6 +130,8 @@ typedef struct S_pipline_WriteBack {
 	uint32_t WtiteBack_IR;
 	bool	 WB_MUX;
 	uint32_t Execute_Opcode : 8;
+	uint32_t Rsv;
+	uint32_t Rtv;
 }S_Pipline_WriteBack;
 
 typedef struct S_MSI_Bus {
@@ -128,13 +139,25 @@ typedef struct S_MSI_Bus {
 	E_Memory_Command bus_cmd;
 	uint32_t bus_Addr :20; 
 	uint32_t bus_data;
-	bool bus_shared;
 }S_MSI_Bus;
 
 typedef struct Queue_Bus {
 	S_MSI_Bus MSI_Bus[4];
 	uint32_t Num_Of_Queue;
 	uint16_t Next_Free_Slot;
+	uint32_t Num_Of_trans;
+	uint32_t shared_core;
+	uint32_t need_to_read_bus;
+	uint32_t checked_and_shared;
+	uint32_t checked_and_modified;
+	uint32_t checked_and_exclusive;
+	uint32_t modified_to_MM;
+	uint32_t wait_16_cycles;
+	uint32_t need_new_request_overwrite;
+	uint32_t core_origid;
+	uint32_t offset_origid;
+	uint32_t cmd_origid;
+	uint32_t data_origid;
 }Queue_Bus;
 
 // struct of the core 
@@ -168,6 +191,9 @@ typedef struct S_Core {
 	uint32_t Reg_Array_Q[16];
 	bool Hazard_Flag[16];
 	bool Hazard_Stall;
+	bool bus_Stall;
+	S_MSI_Bus Bus_Request;
+	bool flag_Bus_Request;
 
 	
 }S_Core, * P_S_Core;
@@ -182,7 +208,7 @@ typedef struct S_Multi_Core_Env {
 	uint32_t* p_MainMemory;
 	S_Core p_s_core[MAX_NUM_OF_CORES];
 	Queue_Bus Queue_Bus; //maybe need to delete
-
+	uint16_t Finish_Cores;
 
 }S_Multi_Core_Env, * P_S_Multi_Core_Env;
 
@@ -207,7 +233,7 @@ typedef enum OS_Error {
 #define DEBUG_MEM_PRINT			1
 #define DEBUG_WRITEBACK_PRINT	1
 #define DEBUG_REGESTERS_PRINT	0
-#define DEBUG_HAZARD_PRINT		1
+#define DEBUG_HAZARD_PRINT		0
 
 
 

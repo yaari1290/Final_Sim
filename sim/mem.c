@@ -3,7 +3,15 @@
 #include "mem.h"
 
 
+void Read_Main_Memory(uint32_t* p_Main_Memory, FILE* fp)
+{
+	while (!feof(fp))
+	{
+		int j = fscanf(fp, "%x\n", p_Main_Memory++);
+		printf("%x\n", *(p_Main_Memory - 1));
 
+	}
+}
 
 OS_Error Convert_imem(uint32_t *p_mem_core , FILE* fp)
 {
@@ -79,12 +87,8 @@ OS_Error Main_Memory_Open(char* data_path, S_Multi_Core_Env* p_Cores_Env)
 		return ErrorStatus;
 	}
 	
-	p_Cores_Env->p_MainMemory = calloc(2 ^ 20, sizeof(20));
+	p_Cores_Env->p_MainMemory = calloc(1048576, sizeof(uint32_t));
 
-	while (!feof(p_File))
-	{
-		int j = fscanf(p_File, "%x\n", &p_Cores_Env->p_MainMemory);
-
-	}
+	Read_Main_Memory(p_Cores_Env->p_MainMemory, p_File);
 
 }

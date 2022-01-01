@@ -86,7 +86,7 @@ OS_Error initial_Core_Env(int argc, char* argv[], S_Multi_Core_Env *p_Cores_Env)
 	}
 
 
-	for (int Core_Index = 0; Core_Index < 1; Core_Index++) // need to change the number of cores to 4
+	for (int Core_Index = 0; Core_Index < 4; Core_Index++) // need to change the number of cores to 4
 	{
 		ErrorStatus = Mem_Open(p_Cores_Env->data_path[Core_Index], &p_Cores_Env->p_s_core[Core_Index]);
 
@@ -109,8 +109,8 @@ OS_Error initial_Core_Env(int argc, char* argv[], S_Multi_Core_Env *p_Cores_Env)
 	}
 
 	ErrorStatus = Main_Memory_Open(p_Cores_Env->data_path[PATH_MEMIN], p_Cores_Env);
-
-
+	init_Queue_bus(p_Cores_Env);
+	p_Cores_Env->Finish_Cores = 4;
 	return ErrorStatus;
 
 

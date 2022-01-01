@@ -64,10 +64,12 @@ void Get_Decode_Data(S_Core* p_Core)
 {
 	//p_Core->S_Pipline_Core_ID.Decode_Valid_Reg = p_Core->S_Pipline_Core_ID.Decode_Next_Reg;
 
-
-	p_Core->S_Pipline_Core_Decode_Valid.Decode_IR = p_Core->S_Pipline_Core_Fetch_Next.Fetch_IR;
-	p_Core->S_Pipline_Core_Decode_Valid.NPC = p_Core->S_Pipline_Core_Fetch_Next.NPC;
-	p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q + CORE_STAGE_FLAG_DECODE_OFFSET;
+	if (!p_Core->bus_Stall)
+	{
+		p_Core->S_Pipline_Core_Decode_Valid.Decode_IR = p_Core->S_Pipline_Core_Fetch_Next.Fetch_IR;
+		p_Core->S_Pipline_Core_Decode_Valid.NPC = p_Core->S_Pipline_Core_Fetch_Next.NPC;
+	}
+	p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q | CORE_STAGE_FLAG_DECODE_OFFSET;
 	
 }
 
@@ -97,14 +99,29 @@ OS_Error Core_Decode_Stage(S_Core* p_Core)
 			
 	p_Core->Reg_Array_Q[1] = p_Core->S_Pipline_Core_Decode_Next.IMM | sign_extention_mask;
 
-	// need to add her hazard opperation//
-	if (Check_Hazard(p_Core, p_Core->S_Pipline_Core_Decode_Next.Rtv, p_Core->S_Pipline_Core_Decode_Next.Rsv))
+	/*
+	if (p_Core->S_Pipline_Core_Decode_Next.Opcode == 17)
 	{
-		// hazard check for Rsv Rtv and stay in loop until is free
-		p_Core->Hazard_Stall = true;
+		if (Check_Hazard(p_Core, p_Core->S_Pipline_Core_Decode_Next.Rd, p_Core->S_Pipline_Core_Decode_Next.Rd))
+		{
+			// hazard check for Rsv Rtv and stay in loop until is free
+			p_Core->Hazard_Stall = true;
+		}
+		else
+			p_Core->Hazard_Stall = false;
 	}
-	else
-		p_Core->Hazard_Stall = false;
+	*/
+//	else
+//	{
+		// need to add her hazard opperation//
+		if (Check_Hazard(p_Core, p_Core->S_Pipline_Core_Decode_Next.Rtv, p_Core->S_Pipline_Core_Decode_Next.Rsv))
+		{
+			// hazard check for Rsv Rtv and stay in loop until is free
+			p_Core->Hazard_Stall = true;
+		}
+		else
+			p_Core->Hazard_Stall = false;
+	//}
 
 
 	if (p_Core->Hazard_Stall == false)
@@ -192,19 +209,22 @@ OS_Error Core_Decode_Stage(S_Core* p_Core)
 void Get_Execute_Data(S_Core* p_Core)
 {
 
-	p_Core->S_Pipline_Core_Execute_Valid.IMM = p_Core->S_Pipline_Core_Decode_Next.IMM;
-	p_Core->S_Pipline_Core_Execute_Valid.Dest_Reg = p_Core->S_Pipline_Core_Decode_Next.Rd;
-	p_Core->S_Pipline_Core_Execute_Valid.Opcode = p_Core->S_Pipline_Core_Decode_Next.Opcode;
-	p_Core->S_Pipline_Core_Execute_Valid.Execute_IR = p_Core->S_Pipline_Core_Decode_Next.Decode_IR;
-	p_Core->S_Pipline_Core_Execute_Valid.NPC = p_Core->S_Pipline_Core_Decode_Next.NPC;
+	if (!p_Core->bus_Stall)
+	{
+		p_Core->S_Pipline_Core_Execute_Valid.IMM = p_Core->S_Pipline_Core_Decode_Next.IMM;
+		p_Core->S_Pipline_Core_Execute_Valid.Dest_Reg = p_Core->S_Pipline_Core_Decode_Next.Rd;
+		p_Core->S_Pipline_Core_Execute_Valid.Opcode = p_Core->S_Pipline_Core_Decode_Next.Opcode;
+		p_Core->S_Pipline_Core_Execute_Valid.Execute_IR = p_Core->S_Pipline_Core_Decode_Next.Decode_IR;
+		p_Core->S_Pipline_Core_Execute_Valid.NPC = p_Core->S_Pipline_Core_Decode_Next.NPC;
 
-	p_Core->S_Pipline_Core_Execute_Valid.Rtv = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rtv];
-	p_Core->S_Pipline_Core_Execute_Valid.Rsv = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rsv];
-		
-	if((p_Core->S_Pipline_Core_Execute_Valid.Dest_Reg != 0) && (p_Core->S_Pipline_Core_Execute_Valid.Dest_Reg != 1))
-		Signal_Hazard(p_Core, p_Core->S_Pipline_Core_Execute_Valid.Dest_Reg); // signal hazard for the Dest Add Reg
+		p_Core->S_Pipline_Core_Execute_Valid.Rtv = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rtv];
+		p_Core->S_Pipline_Core_Execute_Valid.Rsv = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rsv];
 
-	p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q + CORE_STAGE_FLAG_EXECUTE_OFFSET;
+		if ((p_Core->S_Pipline_Core_Execute_Valid.Dest_Reg != 0) && (p_Core->S_Pipline_Core_Execute_Valid.Dest_Reg != 1))
+			Signal_Hazard(p_Core, p_Core->S_Pipline_Core_Execute_Valid.Dest_Reg); // signal hazard for the Dest Add Reg
+	}
+
+	p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q | CORE_STAGE_FLAG_EXECUTE_OFFSET;
 
 
 }
@@ -416,19 +436,24 @@ OS_Error Core_Execute_Stage(S_Core* p_Core)
 
 void Get_MEM_Data(S_Core* p_Core)
 {
-	p_Core->S_Pipline_Core_Mem_Valid.Dest_Reg = p_Core->S_Pipline_Core_Execute_Next.Dest_Reg;
-	p_Core->S_Pipline_Core_Mem_Valid.Mem_IR = p_Core->S_Pipline_Core_Execute_Next.Execute_IR;
-	p_Core->S_Pipline_Core_Mem_Valid.ALU = p_Core->S_Pipline_Core_Execute_Next.ALU;
-	p_Core->S_Pipline_Core_Mem_Valid.NPC = p_Core->S_Pipline_Core_Execute_Next.NPC;
-	p_Core->S_Pipline_Core_Mem_Valid.Rtv = p_Core->S_Pipline_Core_Execute_Next.Rtv;
-	p_Core->S_Pipline_Core_Mem_Valid.Execute_Opcode = p_Core->S_Pipline_Core_Execute_Next.Opcode;
+	if (!p_Core->bus_Stall)
+	{
+		p_Core->S_Pipline_Core_Mem_Valid.Dest_Reg = p_Core->S_Pipline_Core_Execute_Next.Dest_Reg;
+		p_Core->S_Pipline_Core_Mem_Valid.Mem_IR = p_Core->S_Pipline_Core_Execute_Next.Execute_IR;
+		p_Core->S_Pipline_Core_Mem_Valid.ALU = p_Core->S_Pipline_Core_Execute_Next.ALU;
+		p_Core->S_Pipline_Core_Mem_Valid.NPC = p_Core->S_Pipline_Core_Execute_Next.NPC;
+		p_Core->S_Pipline_Core_Mem_Valid.Rtv = p_Core->S_Pipline_Core_Execute_Next.Rtv;
+		p_Core->S_Pipline_Core_Mem_Valid.Rsv = p_Core->S_Pipline_Core_Execute_Next.Rsv;
+		p_Core->S_Pipline_Core_Mem_Valid.Execute_Opcode = p_Core->S_Pipline_Core_Execute_Next.Opcode;
+	}
 
-	p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q + CORE_STAGE_FLAG_MEM_OFFSET;
+	p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q | CORE_STAGE_FLAG_MEM_OFFSET;
 }
 
-OS_Error Core_Mem_Stage(S_Core* p_Core)
+OS_Error Core_Mem_Stage(S_Core* p_Core, int Core_Index)
 {
 	OS_Error Error_Status = E_NO_ERROR;
+	E_Memory_Command MEM_Function;
 
 	printf("\nStart MEM Stage!\n");
 	p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q & ~CORE_STAGE_FLAG_MEM_OFFSET;
@@ -436,20 +461,53 @@ OS_Error Core_Mem_Stage(S_Core* p_Core)
 	Operation Operation_Status = p_Core->S_Pipline_Core_Mem_Valid.Execute_Opcode;
 
 
-	if ((Operation_Status == E_LW) || (Operation_Status == E_SW) || (Operation_Status == E_HALT))
+	if ((Operation_Status == E_LW) || (Operation_Status == E_SW))
 	{
 		/// need to add memort function
+		if (Operation_Status == E_LW)
+		{
+			MEM_Function = E_BUS_RD;
+			set_S_MSI_Bus(&p_Core->Bus_Request,
+						(E_Owner)Core_Index,
+						MEM_Function, 
+						(p_Core->S_Pipline_Core_Mem_Valid.Rsv+ p_Core->S_Pipline_Core_Mem_Valid.Rtv),
+						p_Core->Reg_Array[p_Core->S_Pipline_Core_Mem_Valid.Dest_Reg]);
+		}
+		else if (Operation_Status == E_SW)
+		{
+			MEM_Function = E_BUS_RDX;
+			set_S_MSI_Bus(&p_Core->Bus_Request,
+				(E_Owner)Core_Index,
+				MEM_Function,
+				p_Core->S_Pipline_Core_Mem_Valid.Dest_Reg,
+				(p_Core->S_Pipline_Core_Mem_Valid.Rsv + p_Core->S_Pipline_Core_Mem_Valid.Rtv));
+
+		}
+
+		p_Core->S_Pipline_Core_Mem_Next.NPC = p_Core->S_Pipline_Core_Mem_Valid.NPC;
+		p_Core->S_Pipline_Core_Mem_Next.Rtv = p_Core->S_Pipline_Core_Mem_Valid.Rtv;
+		p_Core->S_Pipline_Core_Mem_Next.Rsv = p_Core->S_Pipline_Core_Mem_Valid.Rsv;
+		p_Core->S_Pipline_Core_Mem_Next.Dest_Reg = p_Core->S_Pipline_Core_Mem_Valid.Dest_Reg;
+		p_Core->flag_Bus_Request = true;
+		
 		printf("Start MEM Function!\n");
+	}
+
+	else if (Operation_Status == E_HALT) 
+	{
+		//nothing
 	}
 
 	else // Overall dont do anything 
 	{
+		p_Core->flag_Bus_Request = false;
 		printf("No MEM Function!\n");
 		p_Core->S_Pipline_Core_Mem_Next.Dest_Reg = p_Core->S_Pipline_Core_Mem_Valid.Dest_Reg;
 		p_Core->S_Pipline_Core_Mem_Next.Mem_IR =p_Core->S_Pipline_Core_Mem_Valid.Mem_IR;
 		p_Core->S_Pipline_Core_Mem_Next.ALU =p_Core->S_Pipline_Core_Mem_Valid.ALU;
 		p_Core->S_Pipline_Core_Mem_Next.NPC =p_Core->S_Pipline_Core_Mem_Valid.NPC;
 		p_Core->S_Pipline_Core_Mem_Next.Rtv =p_Core->S_Pipline_Core_Mem_Valid.Rtv;
+		p_Core->S_Pipline_Core_Mem_Next.Rsv = p_Core->S_Pipline_Core_Mem_Valid.Rsv;
 		p_Core->S_Pipline_Core_Mem_Next.Execute_Opcode =p_Core->S_Pipline_Core_Mem_Valid.Execute_Opcode;
 
 		//need to do for MD if we make MEM function
@@ -474,8 +532,10 @@ void get_WB_Data(S_Core* p_Core)
 	p_Core->S_Pipline_Core_WB_Valid.MD = p_Core->S_Pipline_Core_Mem_Next.MD;
 	p_Core->S_Pipline_Core_WB_Valid.NPC = p_Core->S_Pipline_Core_Mem_Valid.NPC;
 	p_Core->S_Pipline_Core_WB_Valid.Execute_Opcode = p_Core->S_Pipline_Core_Mem_Next.Execute_Opcode;
+	p_Core->S_Pipline_Core_WB_Valid.Rsv = p_Core->S_Pipline_Core_Mem_Next.Rsv;
+	p_Core->S_Pipline_Core_WB_Valid.Rtv = p_Core->S_Pipline_Core_Mem_Next.Rtv;
 
-	p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q + CORE_STAGE_FLAG_WB_OFFSET;
+	p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q | CORE_STAGE_FLAG_WB_OFFSET;
 
 }
 
@@ -483,20 +543,30 @@ OS_Error Core_WB_Stage(S_Core* p_Core)
 {
 	OS_Error Error_Status = E_NO_ERROR;
 
-	printf("\nStart WB Operation!\n");
-	if ((uint32_t)p_Core->S_Pipline_Core_WB_Valid.Execute_Opcode >(uint32_t)E_SRL)
+	if (p_Core->S_Pipline_Core_WB_Valid.MD == 1)//MEM OP
 	{
-		//DO NOTHING
+		p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_WB_Valid.Dest] = p_Core->p_DSram_Core[p_Core->S_Pipline_Core_WB_Valid.Rsv + p_Core->S_Pipline_Core_WB_Valid.Rtv];
+		Clear_Hazard(p_Core, p_Core->S_Pipline_Core_WB_Valid.Dest);
 	}
 
-	else //no need to WB to mem only to REG
+	else
 	{
-		p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_WB_Valid.Dest] = p_Core->S_Pipline_Core_WB_Valid.ALU; // Writing the final value to reg
-		Clear_Hazard(p_Core, p_Core->S_Pipline_Core_WB_Valid.Dest);
+		printf("\nStart WB Operation!\n");
+		if ((uint32_t)p_Core->S_Pipline_Core_WB_Valid.Execute_Opcode > (uint32_t)E_SRL)
+		{
+			//DO NOTHING
+		}
 
-		printf("ALU = %08x\n", p_Core->S_Pipline_Core_WB_Valid.ALU);
-		printf("Dest Reg = %x\n", p_Core->S_Pipline_Core_WB_Valid.Dest);
 
+		else //no need to WB to mem only to REG
+		{
+			p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_WB_Valid.Dest] = p_Core->S_Pipline_Core_WB_Valid.ALU; // Writing the final value to reg
+			Clear_Hazard(p_Core, p_Core->S_Pipline_Core_WB_Valid.Dest);
+
+			printf("ALU = %08x\n", p_Core->S_Pipline_Core_WB_Valid.ALU);
+			printf("Dest Reg = %x\n", p_Core->S_Pipline_Core_WB_Valid.Dest);
+
+		}
 	}
 
 	p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q & ~CORE_STAGE_FLAG_WB_OFFSET;
@@ -506,7 +576,7 @@ OS_Error Core_WB_Stage(S_Core* p_Core)
 
 }
 
-OS_Error Core_Stage_ex(S_Core *p_Core , E_Core_Stage Stage)
+OS_Error Core_Stage_ex(S_Core *p_Core , int Core_Index, E_Core_Stage Stage)
 {
 
 	OS_Error Error_Status = E_NO_ERROR;
@@ -535,7 +605,7 @@ OS_Error Core_Stage_ex(S_Core *p_Core , E_Core_Stage Stage)
 
 		case E_MEM:
 		{
-			Error_Status = Core_Mem_Stage(p_Core);
+			Error_Status = Core_Mem_Stage(p_Core, Core_Index);
 			return Error_Status;
 
 		}

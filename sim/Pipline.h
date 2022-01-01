@@ -4,6 +4,7 @@
 
 #include "TypeDef.h"
 #include "Branch.h"
+#include "Bus.h"
 
 
 
@@ -20,11 +21,11 @@ OS_Error Core_Execute_Stage(S_Core* p_Core);
 
 void Get_MEM_Data(S_Core* p_Core);
 
-OS_Error Core_Mem_Stage(S_Core* p_Core);
+OS_Error Core_Mem_Stage(S_Core* p_Core, int Core_Index);
 
 void get_WB_Data(S_Core* p_Core);
 
 OS_Error Core_WB_Stage(S_Core* p_Core);
 
-OS_Error Core_Stage_ex(S_Core* p_Core, E_Core_Stage Stage);
+OS_Error Core_Stage_ex(S_Core* p_Core, int Core_Index, E_Core_Stage Stage);
 #endif // !_PIPLINE_H_

@@ -1,6 +1,4 @@
-﻿  Core.c
-  Pipline.c
-  Generating Code...
-C:\Users\User\Desktop\project1_205789688_205946569\sim\Pipline.c(392): warning C4715: 'Core_Execute_Stage': not all control paths return a value
-C:\Users\User\Desktop\project1_205789688_205946569\sim\Pipline.c(541): warning C4715: 'Core_Stage_ex': not all control paths return a value
+﻿  Pipline.c
+C:\Users\User\Desktop\project1_205789688_205946569\sim\Pipline.c(634): warning C4715: 'Core_Stage_ex': not all control paths return a value
+C:\Users\User\Desktop\project1_205789688_205946569\sim\Pipline.c(435): warning C4716: 'Core_Execute_Stage': must return a value
   sim.vcxproj -> C:\Users\User\Desktop\project1_205789688_205946569\Debug\sim.exe
