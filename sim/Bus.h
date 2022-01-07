@@ -4,6 +4,7 @@
 #define _BUS_H_
 
 #include "TypeDef.h"
+#include "output.h"
 
 S_MSI_Bus Pop_first_in_queue(S_Multi_Core_Env* p_Cores_Env);
 int init_Queue_bus(S_Multi_Core_Env* p_Cores_Env); //initilize the bus
@@ -21,7 +22,7 @@ int check_bus_shared(S_Multi_Core_Env* p_Cores_Env, int bus_Addr, E_Owner core_i
 void snooping_func(S_Multi_Core_Env* p_Cores_Env, int shared_core, E_Owner core, E_Memory_Command cmd, Current_MSI_STATE current_state);
 void execute_flush_on_bus(S_Multi_Core_Env* p_Cores_Env, E_Owner owner, E_Memory_Command cmd, int bus_Addr, int shared_core);
 void execute_MSI_request(S_Multi_Core_Env* p_Cores_Env, Current_MSI_STATE current_state);
-Current_MSI_STATE cuurent_MSI_state(P_S_Core p_core, E_Owner bus_origid, uint32_t bus_Addr);
+Current_MSI_STATE cuurent_MSI_state(S_Multi_Core_Env* p_Cores_Env, E_Owner bus_origid, uint32_t bus_Addr);
 
 
 

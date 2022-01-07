@@ -99,7 +99,7 @@ OS_Error Core_Decode_Stage(S_Core* p_Core)
 			
 	p_Core->Reg_Array_Q[1] = p_Core->S_Pipline_Core_Decode_Next.IMM | sign_extention_mask;
 
-	/*
+	
 	if (p_Core->S_Pipline_Core_Decode_Next.Opcode == 17)
 	{
 		if (Check_Hazard(p_Core, p_Core->S_Pipline_Core_Decode_Next.Rd, p_Core->S_Pipline_Core_Decode_Next.Rd))
@@ -110,9 +110,9 @@ OS_Error Core_Decode_Stage(S_Core* p_Core)
 		else
 			p_Core->Hazard_Stall = false;
 	}
-	*/
-//	else
-//	{
+	
+	else
+	{
 		// need to add her hazard opperation//
 		if (Check_Hazard(p_Core, p_Core->S_Pipline_Core_Decode_Next.Rtv, p_Core->S_Pipline_Core_Decode_Next.Rsv))
 		{
@@ -121,7 +121,7 @@ OS_Error Core_Decode_Stage(S_Core* p_Core)
 		}
 		else
 			p_Core->Hazard_Stall = false;
-	//}
+	}
 
 
 	if (p_Core->Hazard_Stall == false)
@@ -216,7 +216,7 @@ void Get_Execute_Data(S_Core* p_Core)
 		p_Core->S_Pipline_Core_Execute_Valid.Opcode = p_Core->S_Pipline_Core_Decode_Next.Opcode;
 		p_Core->S_Pipline_Core_Execute_Valid.Execute_IR = p_Core->S_Pipline_Core_Decode_Next.Decode_IR;
 		p_Core->S_Pipline_Core_Execute_Valid.NPC = p_Core->S_Pipline_Core_Decode_Next.NPC;
-
+		p_Core->S_Pipline_Core_Execute_Valid.R_Rd_MEM = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rd];
 		p_Core->S_Pipline_Core_Execute_Valid.Rtv = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rtv];
 		p_Core->S_Pipline_Core_Execute_Valid.Rsv = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rsv];
 
@@ -304,6 +304,7 @@ void Execute_HALT_Op(S_Core* p_Core)
 	p_Core->Core_Stage_Flag = p_Core->Core_Stage_Flag & ~CORE_STAGE_FLAG_DECODE_OFFSET;
 	p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q & ~CORE_STAGE_FLAG_FETCH_OFFSET;
 	p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q & ~CORE_STAGE_FLAG_DECODE_OFFSET;
+	p_Core->imem_Index = p_Core->Core_PC-1;
 
 }
 
@@ -431,6 +432,7 @@ OS_Error Core_Execute_Stage(S_Core* p_Core)
 		p_Core->S_Pipline_Core_Execute_Next.Rd = p_Core->S_Pipline_Core_Execute_Valid.Rd;
 		p_Core->S_Pipline_Core_Execute_Next.Rsv = p_Core->S_Pipline_Core_Execute_Valid.Rsv;
 		p_Core->S_Pipline_Core_Execute_Next.Rtv = p_Core->S_Pipline_Core_Execute_Valid.Rtv;
+		p_Core->S_Pipline_Core_Execute_Next.R_Rd_MEM = p_Core->S_Pipline_Core_Execute_Valid.R_Rd_MEM;
 	
 }
 
@@ -439,6 +441,7 @@ void Get_MEM_Data(S_Core* p_Core)
 	if (!p_Core->bus_Stall)
 	{
 		p_Core->S_Pipline_Core_Mem_Valid.Dest_Reg = p_Core->S_Pipline_Core_Execute_Next.Dest_Reg;
+		p_Core->S_Pipline_Core_Mem_Valid.R_Dest_Reg = p_Core->S_Pipline_Core_Execute_Next.R_Rd_MEM;
 		p_Core->S_Pipline_Core_Mem_Valid.Mem_IR = p_Core->S_Pipline_Core_Execute_Next.Execute_IR;
 		p_Core->S_Pipline_Core_Mem_Valid.ALU = p_Core->S_Pipline_Core_Execute_Next.ALU;
 		p_Core->S_Pipline_Core_Mem_Valid.NPC = p_Core->S_Pipline_Core_Execute_Next.NPC;
@@ -469,9 +472,9 @@ OS_Error Core_Mem_Stage(S_Core* p_Core, int Core_Index)
 			MEM_Function = E_BUS_RD;
 			set_S_MSI_Bus(&p_Core->Bus_Request,
 						(E_Owner)Core_Index,
-						MEM_Function, 
-						(p_Core->S_Pipline_Core_Mem_Valid.Rsv+ p_Core->S_Pipline_Core_Mem_Valid.Rtv),
-						p_Core->Reg_Array[p_Core->S_Pipline_Core_Mem_Valid.Dest_Reg]);
+						MEM_Function,
+						(p_Core->S_Pipline_Core_Mem_Valid.Rsv + p_Core->S_Pipline_Core_Mem_Valid.Rtv & 0xFFFFF),
+						p_Core->S_Pipline_Core_Mem_Valid.Dest_Reg);
 		}
 		else if (Operation_Status == E_SW)
 		{
@@ -479,8 +482,8 @@ OS_Error Core_Mem_Stage(S_Core* p_Core, int Core_Index)
 			set_S_MSI_Bus(&p_Core->Bus_Request,
 				(E_Owner)Core_Index,
 				MEM_Function,
-				p_Core->S_Pipline_Core_Mem_Valid.Dest_Reg,
-				(p_Core->S_Pipline_Core_Mem_Valid.Rsv + p_Core->S_Pipline_Core_Mem_Valid.Rtv));
+				(p_Core->S_Pipline_Core_Mem_Valid.Rsv + p_Core->S_Pipline_Core_Mem_Valid.Rtv & 0xFFFFF),
+				p_Core->S_Pipline_Core_Mem_Valid.R_Dest_Reg);
 
 		}
 
@@ -488,6 +491,7 @@ OS_Error Core_Mem_Stage(S_Core* p_Core, int Core_Index)
 		p_Core->S_Pipline_Core_Mem_Next.Rtv = p_Core->S_Pipline_Core_Mem_Valid.Rtv;
 		p_Core->S_Pipline_Core_Mem_Next.Rsv = p_Core->S_Pipline_Core_Mem_Valid.Rsv;
 		p_Core->S_Pipline_Core_Mem_Next.Dest_Reg = p_Core->S_Pipline_Core_Mem_Valid.Dest_Reg;
+		p_Core->S_Pipline_Core_Mem_Next.Execute_Opcode = p_Core->S_Pipline_Core_Mem_Valid.Execute_Opcode;
 		p_Core->flag_Bus_Request = true;
 		
 		printf("Start MEM Function!\n");
@@ -529,14 +533,24 @@ void get_WB_Data(S_Core* p_Core)
 	p_Core->S_Pipline_Core_WB_Valid.ALU = p_Core->S_Pipline_Core_Mem_Next.ALU;
 	p_Core->S_Pipline_Core_WB_Valid.Dest = p_Core->S_Pipline_Core_Mem_Next.Dest_Reg;
 	p_Core->S_Pipline_Core_WB_Valid.WtiteBack_IR = p_Core->S_Pipline_Core_Mem_Next.Mem_IR;
-	p_Core->S_Pipline_Core_WB_Valid.MD = p_Core->S_Pipline_Core_Mem_Next.MD;
 	p_Core->S_Pipline_Core_WB_Valid.NPC = p_Core->S_Pipline_Core_Mem_Valid.NPC;
 	p_Core->S_Pipline_Core_WB_Valid.Execute_Opcode = p_Core->S_Pipline_Core_Mem_Next.Execute_Opcode;
 	p_Core->S_Pipline_Core_WB_Valid.Rsv = p_Core->S_Pipline_Core_Mem_Next.Rsv;
 	p_Core->S_Pipline_Core_WB_Valid.Rtv = p_Core->S_Pipline_Core_Mem_Next.Rtv;
+	p_Core->S_Pipline_Core_WB_Valid.MD = p_Core->S_Pipline_Core_Mem_Next.MD;
 
 	p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q | CORE_STAGE_FLAG_WB_OFFSET;
+	
+	if (p_Core->S_Pipline_Core_WB_Valid.Execute_Opcode == E_SW)
+	{
+		p_Core->S_Pipline_Core_WB_Valid.MD =0;
 
+	}
+	else
+	{
+		p_Core->S_Pipline_Core_WB_Valid.MD = p_Core->S_Pipline_Core_Mem_Next.MD;
+	}
+	
 }
 
 OS_Error Core_WB_Stage(S_Core* p_Core)
@@ -545,7 +559,9 @@ OS_Error Core_WB_Stage(S_Core* p_Core)
 
 	if (p_Core->S_Pipline_Core_WB_Valid.MD == 1)//MEM OP
 	{
-		p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_WB_Valid.Dest] = p_Core->p_DSram_Core[p_Core->S_Pipline_Core_WB_Valid.Rsv + p_Core->S_Pipline_Core_WB_Valid.Rtv];
+		int offset = (p_Core->S_Pipline_Core_WB_Valid.Rsv + p_Core->S_Pipline_Core_WB_Valid.Rtv) & 0x0003;
+		int index = ((p_Core->S_Pipline_Core_WB_Valid.Rsv + p_Core->S_Pipline_Core_WB_Valid.Rtv) / 4) & 0x03f;
+		p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_WB_Valid.Dest] = p_Core->p_DSram_Core[index*4 + offset];
 		Clear_Hazard(p_Core, p_Core->S_Pipline_Core_WB_Valid.Dest);
 	}
 

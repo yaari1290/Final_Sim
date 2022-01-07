@@ -92,3 +92,18 @@ OS_Error Main_Memory_Open(char* data_path, S_Multi_Core_Env* p_Cores_Env)
 	Read_Main_Memory(p_Cores_Env->p_MainMemory, p_File);
 
 }
+
+OS_Error bus_trace_Open(char* data_path, S_Multi_Core_Env* p_Cores_Env)
+{
+	OS_Error ErrorStatus;
+
+	p_Cores_Env->p_bus_trace = fopen(data_path, "w");
+
+}
+
+
+void MemOut_File_Open(char* data_path, S_Multi_Core_Env* p_Cores_Env)
+{
+
+	p_Cores_Env->p_memout = fopen(data_path, "w");
+}

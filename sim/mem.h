@@ -12,4 +12,8 @@ OS_Error Opening_Core_Output_Files(S_Core* Core,char* RegOut_path, char* CoreTra
 
 OS_Error Main_Memory_Open(char* data_path, S_Multi_Core_Env* p_Cores_Env);
 
+OS_Error bus_trace_Open(char* data_path, S_Multi_Core_Env* p_Cores_Env);
+
+void MemOut_File_Open(char* data_path, S_Multi_Core_Env* p_Cores_Env);
+
 #endif

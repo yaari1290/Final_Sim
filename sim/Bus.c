@@ -66,11 +66,12 @@ void removeData(S_Multi_Core_Env* p_Cores_Env)
     p_Cores_Env->Queue_Bus.core_origid = -1;
 }
 
-Current_MSI_STATE cuurent_MSI_state(P_S_Core p_core, E_Owner bus_origid, uint32_t bus_Addr)
+Current_MSI_STATE cuurent_MSI_state(S_Multi_Core_Env* p_Cores_Env, E_Owner bus_origid, uint32_t bus_Addr)
 {
-	int index = (bus_Addr / 4) & 0x00ff;
-	int tag = bus_Addr / 1024;
-	return (p_core->p_TSram_Core[index] / 4096);
+	int index = (bus_Addr / 4) & 0x003f;
+	int tag = bus_Addr / 256;
+	printf("Current_state: %d", p_Cores_Env->p_s_core[bus_origid].p_TSram_Core[index]);
+	return (p_Cores_Env->p_s_core[bus_origid].p_TSram_Core[index] / 4096);
 }
 S_MSI_Bus Pop_first_in_queue(S_Multi_Core_Env* p_Cores_Env)
 {
@@ -135,8 +136,8 @@ S_MSI_Bus getNextfromQueue(S_Multi_Core_Env* p_Cores_Env)
 int check_bus_shared(S_Multi_Core_Env* p_Cores_Env, int bus_Addr, E_Owner core_index)
 {
 	int offset = bus_Addr & 0x0003;
-	int index = (bus_Addr / 4) & 0x00ff;
-	int tag = bus_Addr / 1024;
+	int index = (bus_Addr / 4) & 0x003f;
+	int tag = bus_Addr / 256;
 	int bus_shared = 0;
 	switch (core_index)
 	{
@@ -241,7 +242,6 @@ int check_bus_shared(S_Multi_Core_Env* p_Cores_Env, int bus_Addr, E_Owner core_i
 	{
 		if (((p_Cores_Env->p_s_core[0].p_TSram_Core[index] & 0x0fff) == tag) && ((p_Cores_Env->p_s_core[0].p_TSram_Core[index] / 4096) == 1))
 		{
-			bus_shared = 1;
 			p_Cores_Env->Queue_Bus.checked_and_shared = 1;
 		}
 		else if (((p_Cores_Env->p_s_core[0].p_TSram_Core[index] & 0x0fff) == tag) && ((p_Cores_Env->p_s_core[0].p_TSram_Core[index] / 4096) == 2))
@@ -256,7 +256,6 @@ int check_bus_shared(S_Multi_Core_Env* p_Cores_Env, int bus_Addr, E_Owner core_i
 
 		if (((p_Cores_Env->p_s_core[1].p_TSram_Core[index] & 0x0fff) == tag) && ((p_Cores_Env->p_s_core[1].p_TSram_Core[index] / 4096) == 1))
 		{
-			bus_shared = 1;
 			p_Cores_Env->Queue_Bus.checked_and_shared = 1;
 		}
 		else if (((p_Cores_Env->p_s_core[1].p_TSram_Core[index] & 0x0fff) == tag) && ((p_Cores_Env->p_s_core[1].p_TSram_Core[index] / 4096) == 2))
@@ -271,7 +270,6 @@ int check_bus_shared(S_Multi_Core_Env* p_Cores_Env, int bus_Addr, E_Owner core_i
 
 		if (((p_Cores_Env->p_s_core[3].p_TSram_Core[index] & 0x0fff) == tag) && ((p_Cores_Env->p_s_core[3].p_TSram_Core[index] / 4096) == 1))
 		{
-			bus_shared = 1;
 			p_Cores_Env->Queue_Bus.checked_and_shared = 1;
 		}
 		else if (((p_Cores_Env->p_s_core[3].p_TSram_Core[index] & 0x0fff) == tag) && ((p_Cores_Env->p_s_core[3].p_TSram_Core[index] / 4096) == 2))
@@ -289,7 +287,6 @@ int check_bus_shared(S_Multi_Core_Env* p_Cores_Env, int bus_Addr, E_Owner core_i
 	{
 		if (((p_Cores_Env->p_s_core[0].p_TSram_Core[index] & 0x0fff) == tag) && ((p_Cores_Env->p_s_core[0].p_TSram_Core[index] / 4096) == 1))
 		{
-			bus_shared = 1;
 			p_Cores_Env->Queue_Bus.checked_and_shared = 1;
 		}
 		else if (((p_Cores_Env->p_s_core[0].p_TSram_Core[index] & 0x0fff) == tag) && ((p_Cores_Env->p_s_core[0].p_TSram_Core[index] / 4096) == 2))
@@ -304,7 +301,6 @@ int check_bus_shared(S_Multi_Core_Env* p_Cores_Env, int bus_Addr, E_Owner core_i
 
 		if (((p_Cores_Env->p_s_core[1].p_TSram_Core[index] & 0x0fff) == tag) && ((p_Cores_Env->p_s_core[1].p_TSram_Core[index] / 4096) == 1))
 		{
-			bus_shared = 1;
 			p_Cores_Env->Queue_Bus.checked_and_shared = 1;
 		}
 		else if (((p_Cores_Env->p_s_core[1].p_TSram_Core[index] & 0x0fff) == tag) && ((p_Cores_Env->p_s_core[1].p_TSram_Core[index] / 4096) == 2))
@@ -319,7 +315,6 @@ int check_bus_shared(S_Multi_Core_Env* p_Cores_Env, int bus_Addr, E_Owner core_i
 
 		if (((p_Cores_Env->p_s_core[2].p_TSram_Core[index] & 0x0fff) == tag) && ((p_Cores_Env->p_s_core[2].p_TSram_Core[index] / 4096) == 1))
 		{
-			bus_shared = 1;
 			p_Cores_Env->Queue_Bus.checked_and_shared = 1;
 		}
 		else if (((p_Cores_Env->p_s_core[2].p_TSram_Core[index] & 0x0fff) == tag) && ((p_Cores_Env->p_s_core[2].p_TSram_Core[index] / 4096) == 2))
@@ -339,7 +334,17 @@ int check_bus_shared(S_Multi_Core_Env* p_Cores_Env, int bus_Addr, E_Owner core_i
 
 void snooping_func(S_Multi_Core_Env* p_Cores_Env, int shared_core, E_Owner core, E_Memory_Command cmd, Current_MSI_STATE current_state)
 {
-	int index = (p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_Addr / 4) & 0x00ff;
+	int index = (p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_Addr / 4) & 0x003f;
+	int tag = p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_Addr / 256;
+	if (current_state != 2)
+	{
+		Output_Bus_Trace(p_Cores_Env, p_Cores_Env->Clock);
+	}
+	int is_same_tag = 0;
+	if ((p_Cores_Env->p_s_core[core].p_TSram_Core[index] & 0x0fff) == tag)
+	{
+		is_same_tag = 1;
+	}
 
 	for (int i_core = 0; i_core < 4; i_core++)
 	{
@@ -351,6 +356,7 @@ void snooping_func(S_Multi_Core_Env* p_Cores_Env, int shared_core, E_Owner core,
 				{
 					if (shared_core)
 					{
+						p_Cores_Env->p_s_core[core].read_miss += 1;
 						p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xFFF) | 0x1000;
 						p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_FLUSH;
 						p_Cores_Env->Queue_Bus.need_to_read_bus = 1;
@@ -358,6 +364,7 @@ void snooping_func(S_Multi_Core_Env* p_Cores_Env, int shared_core, E_Owner core,
 					}
 					else
 					{
+						p_Cores_Env->p_s_core[core].read_miss += 1;
 						p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xFFF) | 0x2000;
 						p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_FLUSH;
 						p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid = 4;
@@ -368,44 +375,175 @@ void snooping_func(S_Multi_Core_Env* p_Cores_Env, int shared_core, E_Owner core,
 				}
 				if (cmd == 2) //BusRDX
 				{
+					p_Cores_Env->p_s_core[core].write_miss += 1;
 					p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xFFF) | 0x3000;
 					p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_FLUSH;
+					p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid = E_MAIN_MEM;
 					p_Cores_Env->Queue_Bus.need_to_read_bus = 1;
 					p_Cores_Env->Queue_Bus.wait_16_cycles = 17;
+				}
+				if (!is_same_tag)
+				{
+					p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xF000) + tag;
 				}
 			}
 			if (current_state == 1) // SHARED
 			{
-				if (cmd == 1) //BusRd
+				if (is_same_tag)
 				{
-					p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_NO_COMMAND;
-					p_Cores_Env->Queue_Bus.need_to_read_bus = 0;
+					if (cmd == 1) //BusRd
+					{
+						p_Cores_Env->p_s_core[core].read_hit += 1;
+						p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_NO_COMMAND;
+						p_Cores_Env->Queue_Bus.need_to_read_bus = 0;
+					}
+					else if (cmd == 2) //BusRDX
+					{
+						p_Cores_Env->p_s_core[core].write_miss += 1;
+						p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xFFF) | 0x3000;
+						p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_NO_COMMAND;
+						p_Cores_Env->Queue_Bus.need_to_read_bus = 0;
+					}
 				}
-				else if (cmd == 2) //BusRDX
+				else
 				{
-					p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xFFF) | 0x3000;
-					p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_NO_COMMAND;
-					p_Cores_Env->Queue_Bus.need_to_read_bus = 0;
+					p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0x0000) + tag;
+					if (cmd == 1) //BusRD
+					{
+						if (shared_core)
+						{
+							p_Cores_Env->p_s_core[core].read_miss += 1;
+							p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xFFF) | 0x1000;
+							p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_FLUSH;
+							p_Cores_Env->Queue_Bus.need_to_read_bus = 1;
+							p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid = shared_core;
+						}
+						else
+						{
+							p_Cores_Env->p_s_core[core].read_miss += 1;
+							p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xFFF) | 0x2000;
+							p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_FLUSH;
+							p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid = 4;
+							p_Cores_Env->Queue_Bus.need_to_read_bus = 1;
+							p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid = E_MAIN_MEM;
+							p_Cores_Env->Queue_Bus.wait_16_cycles = 17;
+						}
+					}
+					if (cmd == 2) //BusRDX
+					{
+						p_Cores_Env->p_s_core[core].write_miss += 1;
+						p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xFFF) | 0x3000;
+						p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_FLUSH;
+						p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid = E_MAIN_MEM;
+						p_Cores_Env->Queue_Bus.need_to_read_bus = 1;
+						p_Cores_Env->Queue_Bus.wait_16_cycles = 17;
+					}
 				}
+
 			}
 			if (current_state == 2) // EXCLUSIVE
 			{
-				if (cmd == 1) //BusRd
+				if (is_same_tag)
 				{
-					p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_NO_COMMAND;
-					p_Cores_Env->Queue_Bus.need_to_read_bus = 0;
+					if (cmd == 1) //BusRd
+					{
+						p_Cores_Env->p_s_core[core].read_hit += 1;
+						p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_NO_COMMAND;
+						p_Cores_Env->Queue_Bus.need_to_read_bus = 0;
+					}
+					else if (cmd == 2) //BusRDX
+					{
+						p_Cores_Env->p_s_core[core].write_hit += 1;
+						p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xFFF) | 0x3000;
+						p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_NO_COMMAND;
+						p_Cores_Env->Queue_Bus.need_to_read_bus = 0;
+					}
 				}
-				else if (cmd == 2) //BusRDX
+				else
 				{
-					p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xFFF) | 0x3000;
-					p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_NO_COMMAND;
-					p_Cores_Env->Queue_Bus.need_to_read_bus = 0;
+					p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0x0000) + tag;
+					if (cmd == 1) //BusRD
+					{
+						if (shared_core)
+						{
+							p_Cores_Env->p_s_core[core].read_miss += 1;
+							p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xFFF) | 0x1000;
+							p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_FLUSH;
+							p_Cores_Env->Queue_Bus.need_to_read_bus = 1;
+							p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid = shared_core;
+						}
+						else
+						{
+							p_Cores_Env->p_s_core[core].read_miss += 1;
+							p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xFFF) | 0x2000;
+							p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_FLUSH;
+							p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid = 4;
+							p_Cores_Env->Queue_Bus.need_to_read_bus = 1;
+							p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid = E_MAIN_MEM;
+							p_Cores_Env->Queue_Bus.wait_16_cycles = 17;
+						}
+					}
+					if (cmd == 2) //BusRDX
+					{
+						p_Cores_Env->p_s_core[core].write_miss += 1;
+						p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xFFF) | 0x3000;
+						p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_FLUSH;
+						p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid = E_MAIN_MEM;
+						p_Cores_Env->Queue_Bus.need_to_read_bus = 1;
+						p_Cores_Env->Queue_Bus.wait_16_cycles = 17;
+					}
 				}
 			}
 			if (current_state == 3) // MODIFIED
 			{
-				p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_NO_COMMAND;
-				p_Cores_Env->Queue_Bus.need_to_read_bus = 0;
+				if (is_same_tag)
+				{
+					if (cmd == 1) //BusRd
+					{
+						p_Cores_Env->p_s_core[core].read_hit += 1;
+					}
+					else if (cmd == 2) //BusRDX
+					{
+						p_Cores_Env->p_s_core[core].write_miss += 1;
+					}
+					p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_NO_COMMAND;
+					p_Cores_Env->Queue_Bus.need_to_read_bus = 0;
+				}
+				else
+				{
+					p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0x0000) + tag;
+					if (cmd == 1) //BusRD
+					{
+						if (shared_core)
+						{
+							p_Cores_Env->p_s_core[core].read_miss += 1;
+							p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xFFF) | 0x1000;
+							p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_FLUSH;
+							p_Cores_Env->Queue_Bus.need_to_read_bus = 1;
+							p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid = shared_core;
+						}
+						else
+						{
+							p_Cores_Env->p_s_core[core].read_miss += 1;
+							p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xFFF) | 0x2000;
+							p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_FLUSH;
+							p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid = 4;
+							p_Cores_Env->Queue_Bus.need_to_read_bus = 1;
+							p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid = E_MAIN_MEM;
+							p_Cores_Env->Queue_Bus.wait_16_cycles = 17;
+						}
+					}
+					if (cmd == 2) //BusRDX
+					{
+						p_Cores_Env->p_s_core[core].write_miss += 1;
+						p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xFFF) | 0x3000;
+						p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd = E_FLUSH;
+						p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid = E_MAIN_MEM;
+						p_Cores_Env->Queue_Bus.need_to_read_bus = 1;
+						p_Cores_Env->Queue_Bus.wait_16_cycles = 17;
+					}
+				}
+
 			}
 		}
 	}
@@ -450,21 +588,14 @@ void snooping_func(S_Multi_Core_Env* p_Cores_Env, int shared_core, E_Owner core,
 				p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] = (p_Cores_Env->p_s_core[i_core].p_TSram_Core[index] & 0xFFF);
 			}
 		}
-		if (i_core == 4)
-		{
-			if (cmd == 2 && current_state == 0) //BusRDX and invalid
-			{
-				p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid = i_core;
-			}
-		}
 	}
 }
 
 void execute_flush_on_bus(S_Multi_Core_Env* p_Cores_Env, E_Owner owner, E_Memory_Command cmd, int bus_Addr, int shared_core)
 {
 	int offset = bus_Addr & 0x0003;
-	int index = (bus_Addr / 4) & 0x00ff;
-	int tag = bus_Addr / 1024;
+	int index = (bus_Addr / 4) & 0x003f;
+	int tag = bus_Addr / 256;
 	uint32_t* p_MainMemory = p_Cores_Env->p_MainMemory;
 	if (p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd == E_FLUSH)
 	{
@@ -493,6 +624,7 @@ void execute_MSI_request(S_Multi_Core_Env* p_Cores_Env, Current_MSI_STATE curren
 	int bus_data = p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_data;
 	if ((p_Cores_Env->Queue_Bus.Num_Of_trans == 0) && (p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid != 4))
 	{
+		p_Cores_Env->Queue_Bus.addr_origid = bus_Addr;
 		p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_Addr = (p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_Addr / 4) * 4;
 		p_Cores_Env->Queue_Bus.cmd_origid = cmd;
 		p_Cores_Env->Queue_Bus.offset_origid = bus_Addr % 4;
@@ -501,21 +633,28 @@ void execute_MSI_request(S_Multi_Core_Env* p_Cores_Env, Current_MSI_STATE curren
 		p_Cores_Env->Queue_Bus.shared_core = check_bus_shared(p_Cores_Env, bus_Addr, core_index); //update paramters for snooping
 		snooping_func(p_Cores_Env, p_Cores_Env->Queue_Bus.shared_core, core_index, cmd, current_state); // execute snooping and update state
 	}
+
+	if (p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid != 0)
+	{
+		p_Cores_Env->p_s_core[p_Cores_Env->Queue_Bus.core_origid].mem_stall += 1;
+	}
+
 	cmd = p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd;
 	int owner = p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid;
-	if (p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid != 4) // handle reed from main memory
+	if (p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_origid != 4) // handle read not from main memory
 	{
 		execute_flush_on_bus(p_Cores_Env, owner, cmd, bus_Addr, p_Cores_Env->Queue_Bus.shared_core);
 		int offset = bus_Addr & 0x0003;
-		int index = (bus_Addr / 4) & 0x00ff;
-		int tag = bus_Addr / 1024;
-		if (p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd != E_NO_COMMAND)
+		int index = (bus_Addr / 4) & 0x003f;
+		int tag = bus_Addr / 256;
+		if (p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd == E_FLUSH)
 		{
+			Output_Bus_Trace(p_Cores_Env, p_Cores_Env->Clock);
 			p_Cores_Env->p_s_core[p_Cores_Env->Queue_Bus.core_origid].p_DSram_Core[(index + offset)] = p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_data;
 			p_Cores_Env->Queue_Bus.Num_Of_trans += 1;
 			p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_Addr += 1;
 		}
-		else if(p_Cores_Env->Queue_Bus.cmd_origid == 2)
+		else if (p_Cores_Env->Queue_Bus.cmd_origid == E_BUS_RDX && p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_cmd == E_NO_COMMAND) // write hit
 		{
 			p_Cores_Env->p_s_core[p_Cores_Env->Queue_Bus.core_origid].S_Pipline_Core_Mem_Next.MD = 0;
 			p_Cores_Env->p_s_core[p_Cores_Env->Queue_Bus.core_origid].p_DSram_Core[(p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_Addr + p_Cores_Env->Queue_Bus.offset_origid)] = p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_data;
@@ -537,20 +676,21 @@ void execute_MSI_request(S_Multi_Core_Env* p_Cores_Env, Current_MSI_STATE curren
 	{
 		execute_flush_on_bus(p_Cores_Env, owner, cmd, bus_Addr, p_Cores_Env->Queue_Bus.shared_core);
 		int offset = bus_Addr & 0x0003;
-		int index = (bus_Addr / 4) & 0x00ff;
-		int tag = bus_Addr / 1024;
-		p_Cores_Env->p_s_core[p_Cores_Env->Queue_Bus.core_origid].p_DSram_Core[(index + offset)] = p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_data; //update the cache
+		int index = (bus_Addr / 4) & 0x03f;
+		int tag = bus_Addr / 256;
+		p_Cores_Env->p_s_core[p_Cores_Env->Queue_Bus.core_origid].p_DSram_Core[(index*4 + offset)] = p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_data; //update the cache
+		Output_Bus_Trace(p_Cores_Env, p_Cores_Env->Clock);
 		p_Cores_Env->Queue_Bus.Num_Of_trans += 1;
 		p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_Addr += 1;
 	}
 	// if finish transmit
 	if (p_Cores_Env->Queue_Bus.Num_Of_trans == 4)
 	{
-		if (p_Cores_Env->Queue_Bus.cmd_origid == 2)
+		if (p_Cores_Env->Queue_Bus.cmd_origid == 2) // when finish transimt block from MM write to the cache the relevant value
 		{
-			p_Cores_Env->p_s_core[p_Cores_Env->Queue_Bus.core_origid].p_DSram_Core[(p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_Addr + p_Cores_Env->Queue_Bus.offset_origid)] = p_Cores_Env->Queue_Bus.data_origid;
+			p_Cores_Env->p_s_core[p_Cores_Env->Queue_Bus.core_origid].p_DSram_Core[(p_Cores_Env->Queue_Bus.MSI_Bus[0].bus_Addr-4) + (p_Cores_Env->Queue_Bus.offset_origid)] = p_Cores_Env->Queue_Bus.data_origid;
 		}
-		int index = ((bus_Addr-1) / 4) & 0x00ff;
+		int index = ((bus_Addr - 1) / 4) & 0x00ff;
 		int last_addr = index + p_Cores_Env->Queue_Bus.offset_origid;
 		p_Cores_Env->p_s_core[p_Cores_Env->Queue_Bus.core_origid].S_Pipline_Core_Mem_Next.MD =1;
 		removeData(p_Cores_Env);

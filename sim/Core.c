@@ -1,7 +1,7 @@
 #include "Core.h"
 
 
-
+#define BIT(x)	(1U << (x))
 
 void Core_Init(S_Core* Core , int Core_Index)
 {
@@ -13,6 +13,13 @@ void Core_Init(S_Core* Core , int Core_Index)
 	Core->Core_Stage_Flag = CORE_STAGE_FLAG_FETCH_OFFSET;
 	Core->Core_Stage_Flag_Q = CORE_STAGE_FLAG_FETCH_OFFSET;
 	Core->Hazard_Stall = false;
+	Core->instructions = 0;
+	Core->read_hit = 0;
+	Core->write_hit = 0;
+	Core->read_miss = 0;
+	Core->write_miss = 0;
+	Core->decode_stall = 0;
+	Core->mem_stall = 0;
 
 
 	for (ii = 0; ii < 16; ii++)
@@ -46,11 +53,13 @@ void Next_Cycle_Data(S_Core* p_Core)
 		{
 			Get_Execute_Data(p_Core);
 		}
-		/*else
+
+		if (p_Core->bus_Stall)
 		{
 			p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q | CORE_STAGE_FLAG_EXECUTE_OFFSET;
 		}
-		*/
+
+		
 	}
 	if ((p_Core->Core_Stage_Flag & 0x01) == CORE_STAGE_FLAG_FETCH_OFFSET)
 		if (p_Core->Hazard_Stall == false) 
@@ -64,6 +73,8 @@ void Next_Cycle_Data(S_Core* p_Core)
 
 }
 
+
+
 OS_Error Cores_ex(S_Multi_Core_Env* Cores_env)
 {
 
@@ -71,90 +82,147 @@ OS_Error Cores_ex(S_Multi_Core_Env* Cores_env)
 	OS_Error Error_Status = E_NO_ERROR;
 	while (1)
 	{
-		for (Core_Index = 0; Core_Index < 1; Core_Index++) // need to change for 4 cores for now it is only for core 0
+		for (Core_Index = 0; Core_Index < 2; Core_Index++) // need to change for 4 cores for now it is only for core 0
 		{
-			if ((Cores_env->p_s_core[Core_Index].Hazard_Stall == false) &&(Cores_env->p_s_core[Core_Index].bus_Stall == false))
-				Cores_env->p_s_core[Core_Index].Core_PC_Q++; // Adding Core Q PC by 1
 
-
-			if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x01) == CORE_STAGE_FLAG_FETCH_OFFSET)
+			if (Cores_env->Clock == 74)
 			{
-				Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], Core_Index, E_FETCH);
-
+				printf("debug\n");
+				//OutPut_Fill_Dsram_File(&Cores_env->p_s_core[Core_Index]);
+				//OutPut_Fill_Tsram_File(&Cores_env->p_s_core[Core_Index]);
 			}
-			
-			if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x02) == CORE_STAGE_FLAG_DECODE_OFFSET)
-			{
-				Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], Core_Index, E_DECODE);
-			}
-			
 
-			if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x04) == CORE_STAGE_FLAG_EXECUTE_OFFSET)
-			{
-				Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], Core_Index, E_EXECUTE);
-			}
 			
+			int Core_Bit_Mask;
+			if (Core_Index == 0)
+				Core_Bit_Mask = CORE0_WORKING_FLAG;
+			else if (Core_Index == 1)
+				Core_Bit_Mask = CORE1_WORKING_FLAG;
+			else if (Core_Index == 2)
+				Core_Bit_Mask = CORE2_WORKING_FLAG;
+			else if (Core_Index == 3)
+				Core_Bit_Mask = CORE3_WORKING_FLAG;
 
-			if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x08) == CORE_STAGE_FLAG_MEM_OFFSET)
+	
+			if ((Cores_env->Finish_Cores & Core_Bit_Mask) == Core_Bit_Mask)
 			{
-				if(!Cores_env->p_s_core[Core_Index].bus_Stall)
-					Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], Core_Index, E_MEM);
-				
-				if (Cores_env->p_s_core[Core_Index].flag_Bus_Request == true)
+				if ((Cores_env->p_s_core[Core_Index].Hazard_Stall == false) && (Cores_env->p_s_core[Core_Index].bus_Stall == false))
+					Cores_env->p_s_core[Core_Index].Core_PC_Q++; // Adding Core Q PC by 1
+				else
+				{
+					if (Cores_env->p_s_core[Core_Index].Hazard_Stall == true)
+						Cores_env->p_s_core[Core_Index].decode_stall += 1;
+				}
+
+
+				if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x01) == CORE_STAGE_FLAG_FETCH_OFFSET)
+				{
+					Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], Core_Index, E_FETCH);
+
+				}
+
+				if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x02) == CORE_STAGE_FLAG_DECODE_OFFSET)
+				{
+					Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], Core_Index, E_DECODE);
+				}
+
+
+				if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x04) == CORE_STAGE_FLAG_EXECUTE_OFFSET)
+				{
+					Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], Core_Index, E_EXECUTE);
+				}
+
+
+				if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x08) == CORE_STAGE_FLAG_MEM_OFFSET)
 				{
 					if (!Cores_env->p_s_core[Core_Index].bus_Stall)
+						Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], Core_Index, E_MEM);
+
+					if (Cores_env->p_s_core[Core_Index].flag_Bus_Request == true)
 					{
-						new_request(Cores_env, Cores_env->p_s_core[Core_Index].Bus_Request);
+						if (!Cores_env->p_s_core[Core_Index].bus_Stall)
+						{
+							new_request(Cores_env, Cores_env->p_s_core[Core_Index].Bus_Request);
+						}
+						Current_MSI_STATE current_state = cuurent_MSI_state(Cores_env, Cores_env->p_s_core[Core_Index].Bus_Request.bus_origid, Cores_env->p_s_core[Core_Index].Bus_Request.bus_Addr);
+						if (Cores_env->Queue_Bus.Next_Free_Slot == 1)
+						{
+							execute_MSI_request(Cores_env, current_state);
+						}
+						else if (Cores_env->Queue_Bus.core_origid == Core_Index)
+						{
+							execute_MSI_request(Cores_env, current_state);
+						}
 					}
-					Current_MSI_STATE current_state = cuurent_MSI_state(&Cores_env->p_s_core[Core_Index], Cores_env->p_s_core[Core_Index].Bus_Request.bus_origid, Cores_env->p_s_core[Core_Index].Bus_Request.bus_Addr);
-					execute_MSI_request(Cores_env, current_state);
 				}
-			}
 
-			if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x10) == CORE_STAGE_FLAG_WB_OFFSET)
-				Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], Core_Index, E_WRITE_BACK);
-
+				if ((Cores_env->p_s_core[Core_Index].Core_Stage_Flag & 0x10) == CORE_STAGE_FLAG_WB_OFFSET)
+					Error_Status = Core_Stage_ex(&Cores_env->p_s_core[Core_Index], Core_Index, E_WRITE_BACK);
 
 
 
-			Outout_Fill_Trace(&Cores_env->p_s_core[Core_Index], Cores_env->Clock);
 
-			Next_Cycle_Data(&Cores_env->p_s_core[Core_Index]);
-			
+				Outout_Fill_Trace(&Cores_env->p_s_core[Core_Index], Cores_env->Clock);
+
+				Next_Cycle_Data(&Cores_env->p_s_core[Core_Index]);
+
+				
 
 
-			if (Cores_env->p_s_core[Core_Index].Core_Stage_Flag == 0)
-			{
-				fclose(Cores_env->p_s_core[Core_Index].p_CoreTrace_File);
-				OutPut_Fill_Reg_File(&Cores_env->p_s_core[Core_Index]);
-				Cores_env->Finish_Cores = Cores_env->Finish_Cores - 1;
-				exit(1); //need to delete this and make flag to know that the core is finish
-			}
+				if (Cores_env->p_s_core[Core_Index].Core_Stage_Flag == 0)
+				{
+					fclose(Cores_env->p_s_core[Core_Index].p_CoreTrace_File);
+					OutPut_Fill_Reg_File(&Cores_env->p_s_core[Core_Index]);
+					OutPut_stats_Files(Cores_env->Clock, &Cores_env->p_s_core[Core_Index]);
+					OutPut_Fill_Dsram_File(&Cores_env->p_s_core[Core_Index]);
+					OutPut_Fill_Tsram_File(&Cores_env->p_s_core[Core_Index]);
+					if (Core_Index == 0)
+					{
+						Cores_env->Finish_Cores = Cores_env->Finish_Cores & 0xE;
+					}
 
-			printf("\n Clock =%d\n", Cores_env->Clock);
+					else if (Core_Index == 1)
+					{
+						Cores_env->Finish_Cores = Cores_env->Finish_Cores & 0xD;
+					}
+
+					else if (Core_Index == 2)
+					{
+						Cores_env->Finish_Cores = Cores_env->Finish_Cores & 0xB;
+					}
+
+					else if (Core_Index == 3)
+					{
+						Cores_env->Finish_Cores = Cores_env->Finish_Cores & 0x7;
+					}
+				}
+
+
+				printf("\n Clock =%d\n", Cores_env->Clock);
 
 #if DEBUG_REGESTERS_PRINT	
-			for (int jj = 2; jj < 16; jj++)
-			{
-				printf("\n R%d = %d", jj, Cores_env->p_s_core[Core_Index].Reg_Array[jj]);
-			}
+				for (int jj = 2; jj < 16; jj++)
+				{
+					printf("\n R%d = %d", jj, Cores_env->p_s_core[Core_Index].Reg_Array[jj]);
+				}
 #endif
 #if DEBUG_HAZARD_PRINT
-			printf("\n Hazard Array\n");
-			for (int ii = 0; ii < 16; ii++)
-			{
-				printf("R%d = %d\n", ii, Cores_env->p_s_core[Core_Index].Hazard_Flag[ii]);
-			}
+				printf("\n Hazard Array\n");
+				for (int ii = 0; ii < 16; ii++)
+				{
+					printf("R%d = %d\n", ii, Cores_env->p_s_core[Core_Index].Hazard_Flag[ii]);
+				}
 #endif
-
+			}
 		}// finish loop for all cores
 
-
-
 		Cores_env->Clock++;
-		if (Cores_env->Clock == 7)
+		if (Cores_env->Finish_Cores == 0) // all Cores Finish
 		{
-			printf("debug\n");
+
+			OutPut_MemOut_Files(Cores_env);
+			fclose(Cores_env->p_bus_trace);
+			exit(1);
 		}
 
 	}

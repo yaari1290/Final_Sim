@@ -100,6 +100,7 @@ typedef struct S_Pipline_Execute {
 	uint32_t Rtv;
 	uint32_t Rsv;
 	uint32_t Rd;
+	uint32_t R_Rd_MEM;
 	uint32_t Opcode : 8;
 	uint32_t Execute_IR;
 	uint32_t Dest_Reg;
@@ -111,6 +112,7 @@ typedef struct S_Pipline_Execute {
 typedef struct S_Pipline_Mem {
 	uint32_t ALU;
 	uint32_t Dest_Reg;
+	uint32_t R_Dest_Reg;
 	uint32_t Rtv;
 	uint32_t Rsv;
 	uint32_t Mem_IR;
@@ -158,6 +160,7 @@ typedef struct Queue_Bus {
 	uint32_t offset_origid;
 	uint32_t cmd_origid;
 	uint32_t data_origid;
+	uint32_t addr_origid;
 }Queue_Bus;
 
 // struct of the core 
@@ -194,6 +197,13 @@ typedef struct S_Core {
 	bool bus_Stall;
 	S_MSI_Bus Bus_Request;
 	bool flag_Bus_Request;
+	int instructions;
+	int read_hit;
+	int write_hit;
+	int read_miss;
+	int write_miss;
+	int decode_stall;
+	int mem_stall;
 
 	
 }S_Core, * P_S_Core;
@@ -225,6 +235,11 @@ typedef enum OS_Error {
 #define CORE_STAGE_FLAG_EXECUTE_OFFSET	4
 #define CORE_STAGE_FLAG_MEM_OFFSET		8
 #define CORE_STAGE_FLAG_WB_OFFSET		16
+
+#define CORE0_WORKING_FLAG				1
+#define CORE1_WORKING_FLAG				2
+#define CORE2_WORKING_FLAG				4
+#define CORE3_WORKING_FLAG				8
 
 //// printf for debug 
 #define DEBUG_FETCH_PRINT		1
