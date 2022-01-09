@@ -105,6 +105,7 @@ void OutPut_MemOut_Files(S_Multi_Core_Env* Cores_env)
 		Cores_env->p_MainMemory++;
 		fprintf(Cores_env->p_memout, "%08X\n", *(Cores_env->p_MainMemory-1));
 	}
+	fclose(Cores_env->p_memout);
 
 }
 

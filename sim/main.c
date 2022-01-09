@@ -112,7 +112,7 @@ OS_Error initial_Core_Env(int argc, char* argv[], S_Multi_Core_Env *p_Cores_Env)
 	MemOut_File_Open(p_Cores_Env->data_path[PATH_MEMOUT], p_Cores_Env);
 	ErrorStatus = bus_trace_Open(p_Cores_Env->data_path[PATH_BUSTRACE], p_Cores_Env);
 	init_Queue_bus(p_Cores_Env);
-	p_Cores_Env->Finish_Cores = 3;
+	p_Cores_Env->Finish_Cores = 0xF;
 	return ErrorStatus;
 
 

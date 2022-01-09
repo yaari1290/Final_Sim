@@ -3,27 +3,29 @@
 #include "mem.h"
 
 
+// Reading Main memory file and putting the data in pointer
 void Read_Main_Memory(uint32_t* p_Main_Memory, FILE* fp)
 {
 	while (!feof(fp))
 	{
 		int j = fscanf(fp, "%x\n", p_Main_Memory++);
-		printf("%x\n", *(p_Main_Memory - 1));
+		//printf("%x\n", *(p_Main_Memory - 1));
 
 	}
 }
 
+// Converting the imem input file for each core
+// putting the imem input data in pointer
 OS_Error Convert_imem(uint32_t *p_mem_core , FILE* fp)
 {
 	int ii =0;
 	OS_Error Error_Status = E_NO_ERROR;
 
-	printf("\n===================================\n");
-	printf("\nConvert Imem!\n");
+
 	while(!feof(fp))
 	{
 		int j =fscanf(fp, "%x\n", p_mem_core++);
-		printf("%x\n", *(p_mem_core-1));
+		//printf("%x\n", *(p_mem_core-1));
 
 	}
 

@@ -8,9 +8,9 @@ void Beq_Execute(S_Core* p_Core)
 {
 	uint32_t Rs_Reg, Rt_Reg, Rd_Reg;
 
-	Rd_Reg = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rd];
-	Rt_Reg = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rtv];
-	Rs_Reg = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rsv];
+	Rd_Reg = p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_Decode_Next.Rd];
+	Rt_Reg = p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_Decode_Next.Rtv];
+	Rs_Reg = p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_Decode_Next.Rsv];
 
 	if (Rs_Reg == Rt_Reg)
 	{
@@ -23,9 +23,9 @@ void Bne_Execute(S_Core* p_Core)
 {
 	uint32_t Rs_Reg, Rt_Reg, Rd_Reg;
 
-	Rs_Reg = p_Core->S_Pipline_Core_Decode_Next.Rsv;
-	Rt_Reg = p_Core->S_Pipline_Core_Decode_Next.Rtv;
-	Rd_Reg = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rd];
+	Rs_Reg = p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_Decode_Next.Rsv];
+	Rt_Reg = p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_Decode_Next.Rtv];
+	Rd_Reg = p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_Decode_Next.Rd];
 
 	if (Rs_Reg != Rt_Reg)
 	{
@@ -61,9 +61,9 @@ void Bgt_Execute(S_Core* p_Core)
 {
 	uint32_t Rs_Reg, Rt_Reg, Rd_Reg;
 
-	Rs_Reg = p_Core->S_Pipline_Core_Decode_Next.Rsv;
-	Rt_Reg = p_Core->S_Pipline_Core_Decode_Next.Rtv;
-	Rd_Reg = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rd];
+	Rs_Reg = p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_Decode_Next.Rsv];
+	Rt_Reg = p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_Decode_Next.Rtv];
+	Rd_Reg = p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_Decode_Next.Rd];
 
 	if (SAME_SIGN(Rs_Reg, Rt_Reg))
 	{
@@ -87,9 +87,9 @@ void Ble_Execute(S_Core* p_Core)
 {
 	uint32_t Rs_Reg, Rt_Reg, Rd_Reg;
 
-	Rs_Reg = p_Core->S_Pipline_Core_Decode_Next.Rsv;
-	Rt_Reg = p_Core->S_Pipline_Core_Decode_Next.Rtv;
-	Rd_Reg = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rd];
+	Rs_Reg = p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_Decode_Next.Rsv];
+	Rt_Reg = p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_Decode_Next.Rtv];
+	Rd_Reg = p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_Decode_Next.Rd];
 
 
 	if (SAME_SIGN(Rs_Reg, Rt_Reg))
@@ -112,9 +112,9 @@ void Bge_Execute(S_Core* p_Core)
 {
 	uint32_t Rs_Reg, Rt_Reg, Rd_Reg;
 
-	Rs_Reg = p_Core->S_Pipline_Core_Decode_Next.Rsv;
-	Rt_Reg = p_Core->S_Pipline_Core_Decode_Next.Rtv;
-	Rd_Reg = p_Core->Reg_Array[p_Core->S_Pipline_Core_Decode_Next.Rd];
+	Rs_Reg = p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_Decode_Next.Rsv];
+	Rt_Reg = p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_Decode_Next.Rtv];
+	Rd_Reg = p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_Decode_Next.Rd];
 
 
 	if (SAME_SIGN(Rs_Reg, Rt_Reg))

@@ -501,6 +501,7 @@ void snooping_func(S_Multi_Core_Env* p_Cores_Env, int shared_core, E_Owner core,
 					if (cmd == 1) //BusRd
 					{
 						p_Cores_Env->p_s_core[core].read_hit += 1;
+
 					}
 					else if (cmd == 2) //BusRDX
 					{

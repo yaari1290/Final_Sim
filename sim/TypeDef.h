@@ -242,11 +242,11 @@ typedef enum OS_Error {
 #define CORE3_WORKING_FLAG				8
 
 //// printf for debug 
-#define DEBUG_FETCH_PRINT		1
-#define DEBUG_DECODE_PRINT		1
-#define DEBUG_EXECUTE_PRINT		1
-#define DEBUG_MEM_PRINT			1
-#define DEBUG_WRITEBACK_PRINT	1
+#define DEBUG_FETCH_PRINT		0
+#define DEBUG_DECODE_PRINT		0
+#define DEBUG_EXECUTE_PRINT		0
+#define DEBUG_MEM_PRINT			0
+#define DEBUG_WRITEBACK_PRINT	0
 #define DEBUG_REGESTERS_PRINT	0
 #define DEBUG_HAZARD_PRINT		0
 

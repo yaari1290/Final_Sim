@@ -5,6 +5,9 @@
 #define IS_NEGATIVE(num2c) ((num2c) & BIT(31))
 #define SAME_SIGN(a, b)	!(((a) ^ (b)) & BIT(31))
 
+
+/// Checking if there is a Hazard in the wanted Registers
+/// if there is a hazard return true
 bool Check_Hazard(S_Core* p_Core , uint32_t Add_Rtv, uint32_t Add_Rsv )
 {
 	uint16_t Hazard_Reg_Rtv = 0;
@@ -26,12 +29,14 @@ bool Check_Hazard(S_Core* p_Core , uint32_t Add_Rtv, uint32_t Add_Rsv )
 
 }
 
+// signal Hazard in Rd reg
 void Signal_Hazard(S_Core* p_Core, uint32_t Add_Rdv)
 {
 	if((Add_Rdv != 0) && (Add_Rdv != 1))
 		p_Core->Hazard_Flag[Add_Rdv] = true;
 }
 
+/// clearing Hazard
 void Clear_Hazard(S_Core* p_Core, uint32_t Add_Rdv)
 {
 	if((Add_Rdv != 0) && (Add_Rdv != 1))
@@ -62,8 +67,6 @@ OS_Error Core_Fetch_Stage(S_Core* p_Core)
 
 void Get_Decode_Data(S_Core* p_Core)
 {
-	//p_Core->S_Pipline_Core_ID.Decode_Valid_Reg = p_Core->S_Pipline_Core_ID.Decode_Next_Reg;
-
 	if (!p_Core->bus_Stall)
 	{
 		p_Core->S_Pipline_Core_Decode_Valid.Decode_IR = p_Core->S_Pipline_Core_Fetch_Next.Fetch_IR;
@@ -91,7 +94,7 @@ OS_Error Core_Decode_Stage(S_Core* p_Core)
 	p_Core->S_Pipline_Core_Decode_Next.Rd = (p_Core->S_Pipline_Core_Decode_Valid.Decode_IR & Rd_Mask) >> 20;
 	p_Core->S_Pipline_Core_Decode_Next.Opcode = (p_Core->S_Pipline_Core_Decode_Valid.Decode_IR & Opcode_Mask) >> 24;
 
-
+	// Checking for sign extention
 	if (p_Core->S_Pipline_Core_Decode_Next.IMM & BIT(11))
 	{
 		sign_extention_mask = ~(BIT(12) - 1);
@@ -104,7 +107,7 @@ OS_Error Core_Decode_Stage(S_Core* p_Core)
 	{
 		if (Check_Hazard(p_Core, p_Core->S_Pipline_Core_Decode_Next.Rd, p_Core->S_Pipline_Core_Decode_Next.Rd))
 		{
-			// hazard check for Rsv Rtv and stay in loop until is free
+			// hazard check for Rsv Rtv
 			p_Core->Hazard_Stall = true;
 		}
 		else
@@ -113,7 +116,6 @@ OS_Error Core_Decode_Stage(S_Core* p_Core)
 	
 	else
 	{
-		// need to add her hazard opperation//
 		if (Check_Hazard(p_Core, p_Core->S_Pipline_Core_Decode_Next.Rtv, p_Core->S_Pipline_Core_Decode_Next.Rsv))
 		{
 			// hazard check for Rsv Rtv and stay in loop until is free
@@ -450,6 +452,9 @@ void Get_MEM_Data(S_Core* p_Core)
 		p_Core->S_Pipline_Core_Mem_Valid.Execute_Opcode = p_Core->S_Pipline_Core_Execute_Next.Opcode;
 	}
 
+	else
+		p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q | CORE_STAGE_FLAG_EXECUTE_OFFSET;
+
 	p_Core->Core_Stage_Flag_Q = p_Core->Core_Stage_Flag_Q | CORE_STAGE_FLAG_MEM_OFFSET;
 }
 
@@ -466,7 +471,6 @@ OS_Error Core_Mem_Stage(S_Core* p_Core, int Core_Index)
 
 	if ((Operation_Status == E_LW) || (Operation_Status == E_SW))
 	{
-		/// need to add memort function
 		if (Operation_Status == E_LW)
 		{
 			MEM_Function = E_BUS_RD;
@@ -502,10 +506,9 @@ OS_Error Core_Mem_Stage(S_Core* p_Core, int Core_Index)
 		//nothing
 	}
 
-	else // Overall dont do anything 
+	else
 	{
 		p_Core->flag_Bus_Request = false;
-		printf("No MEM Function!\n");
 		p_Core->S_Pipline_Core_Mem_Next.Dest_Reg = p_Core->S_Pipline_Core_Mem_Valid.Dest_Reg;
 		p_Core->S_Pipline_Core_Mem_Next.Mem_IR =p_Core->S_Pipline_Core_Mem_Valid.Mem_IR;
 		p_Core->S_Pipline_Core_Mem_Next.ALU =p_Core->S_Pipline_Core_Mem_Valid.ALU;
@@ -514,7 +517,6 @@ OS_Error Core_Mem_Stage(S_Core* p_Core, int Core_Index)
 		p_Core->S_Pipline_Core_Mem_Next.Rsv = p_Core->S_Pipline_Core_Mem_Valid.Rsv;
 		p_Core->S_Pipline_Core_Mem_Next.Execute_Opcode =p_Core->S_Pipline_Core_Mem_Valid.Execute_Opcode;
 
-		//need to do for MD if we make MEM function
 		p_Core->S_Pipline_Core_Mem_Next.MD = p_Core->S_Pipline_Core_Mem_Valid.MD;
 		p_Core->S_Pipline_Core_Mem_Next.MD_MUX = true;///indicate that we made MEM function and need to WB to MEM
 
@@ -522,9 +524,6 @@ OS_Error Core_Mem_Stage(S_Core* p_Core, int Core_Index)
 	}
 
 	return Error_Status;
-
-
-
 }
 
 
@@ -568,20 +567,22 @@ OS_Error Core_WB_Stage(S_Core* p_Core)
 	else
 	{
 		printf("\nStart WB Operation!\n");
-		if ((uint32_t)p_Core->S_Pipline_Core_WB_Valid.Execute_Opcode > (uint32_t)E_SRL)
+		
+		if (((uint32_t)p_Core->S_Pipline_Core_WB_Valid.Execute_Opcode > (uint32_t)E_SRL) &&((uint32_t)p_Core->S_Pipline_Core_WB_Valid.Execute_Opcode < (uint32_t)E_SW))
 		{
 			//DO NOTHING
 		}
+		
 
+		else if ((uint32_t)p_Core->S_Pipline_Core_WB_Valid.Execute_Opcode == (uint32_t)E_SW)
+		{
+			Clear_Hazard(p_Core, p_Core->S_Pipline_Core_WB_Valid.Dest);
+		}
 
 		else //no need to WB to mem only to REG
 		{
 			p_Core->Reg_Array_Q[p_Core->S_Pipline_Core_WB_Valid.Dest] = p_Core->S_Pipline_Core_WB_Valid.ALU; // Writing the final value to reg
 			Clear_Hazard(p_Core, p_Core->S_Pipline_Core_WB_Valid.Dest);
-
-			printf("ALU = %08x\n", p_Core->S_Pipline_Core_WB_Valid.ALU);
-			printf("Dest Reg = %x\n", p_Core->S_Pipline_Core_WB_Valid.Dest);
-
 		}
 	}
 
@@ -629,13 +630,6 @@ OS_Error Core_Stage_ex(S_Core *p_Core , int Core_Index, E_Core_Stage Stage)
 		case E_WRITE_BACK:
 		{
 			Error_Status = Core_WB_Stage(p_Core);
-
-			//for debug
-			printf("\nCore Reg Array!\n");
-			for (int ii = 0; ii < 16; ii++)
-			{
-				printf("R%d = %x\n", ii, p_Core->Reg_Array[ii]);
-			}
 			return Error_Status;
 
 		}

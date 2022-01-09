@@ -9,9 +9,22 @@
 #include "output.h"
 #include "Bus.h"
 
-
+/// Core init
+/// 
+/// </summary>
+/// 
+/// initialize each Core parameters
+/// 
+/// <param name= Core
+/// <param name= Core_Index 
 void Core_Init(S_Core* Core, int Core_Index);
 
+/// Cores_ex
+/// 
+/// execute all Cores Pipline by order
+/// 
+/// <param name= Cores_env
+/// return = Error in Cores Pipline
 OS_Error Cores_ex(S_Multi_Core_Env* Cores_env);
 
 
